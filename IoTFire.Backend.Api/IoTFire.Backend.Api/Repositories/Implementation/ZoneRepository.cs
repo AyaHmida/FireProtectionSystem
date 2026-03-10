@@ -1,0 +1,61 @@
+using Microsoft.EntityFrameworkCore;
+using IoTFire.Backend.Api.Data;
+using IoTFire.Backend.Api.Models.Entities;
+using IoTFire.Backend.Api.Repositories.Interfaces;
+
+namespace IoTFire.Backend.Api.Repositories.Implementation
+{
+    public class ZoneRepository : IZoneRepository
+    {
+        private readonly AppDbContext _context;
+
+        public ZoneRepository(AppDbContext context)
+        {
+            _context = context;
+        }
+
+        public async Task<IEnumerable<Zone>> GetAllAsync(int? userId = null)
+        {
+            var query = _context.Zones.AsQueryable();
+            if (userId.HasValue)
+                query = query.Where(z => z.UserId == userId.Value);
+
+            return await query.OrderByDescending(z => z.CreatedAt).ToListAsync();
+        }
+
+        public async Task<Zone?> GetByIdAsync(int id)
+        {
+            return await _context.Zones.FindAsync(id);
+        }
+
+        public async Task<Zone> CreateAsync(Zone zone)
+        {
+            await _context.Zones.AddAsync(zone);
+            await _context.SaveChangesAsync();
+            return zone;
+        }
+
+        public async Task<Zone?> UpdateAsync(Zone zone)
+        {
+            zone.UpdatedAt = DateTime.UtcNow;
+            _context.Zones.Update(zone);
+            await _context.SaveChangesAsync();
+            return zone;
+        }
+
+        public async Task<bool> DeleteAsync(int id)
+        {
+            var zone = await _context.Zones.FindAsync(id);
+            if (zone == null) return false;
+
+            _context.Zones.Remove(zone);
+            await _context.SaveChangesAsync();
+            return true;
+        }
+        public async Task<int> GetSensorCountByZoneIdAsync(int zoneId)
+        {
+            return await _context.Sensors
+                .CountAsync(s => s.ZoneId == zoneId);
+        }
+    }
+}
