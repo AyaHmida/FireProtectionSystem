@@ -16,7 +16,10 @@ namespace IoTFire.Backend.Api.Repositories.Implementation
 
         public async Task<IEnumerable<Zone>> GetAllAsync(int? userId = null)
         {
-            var query = _context.Zones.AsQueryable();
+            var query = _context.Zones
+                  .Include(z => z.User)       // ← AJOUTÉ
+            .Include(z => z.Sensors)    // ← AJOUTÉ pour SensorCount
+                .AsQueryable();
             if (userId.HasValue)
                 query = query.Where(z => z.UserId == userId.Value);
 
@@ -25,14 +28,17 @@ namespace IoTFire.Backend.Api.Repositories.Implementation
 
         public async Task<Zone?> GetByIdAsync(int id)
         {
-            return await _context.Zones.FindAsync(id);
+            return await _context.Zones
+                 .Include(z => z.User)       // ← AJOUTÉ
+            .Include(z => z.Sensors)    // ← AJOUTÉ
+            .FirstOrDefaultAsync(z => z.Id == id);
         }
 
         public async Task<Zone> CreateAsync(Zone zone)
         {
             await _context.Zones.AddAsync(zone);
             await _context.SaveChangesAsync();
-            return zone;
+            return await GetByIdAsync(zone.Id) ?? zone;
         }
 
         public async Task<Zone?> UpdateAsync(Zone zone)
@@ -40,7 +46,7 @@ namespace IoTFire.Backend.Api.Repositories.Implementation
             zone.UpdatedAt = DateTime.UtcNow;
             _context.Zones.Update(zone);
             await _context.SaveChangesAsync();
-            return zone;
+            return await GetByIdAsync(zone.Id);
         }
 
         public async Task<bool> DeleteAsync(int id)
@@ -56,6 +62,17 @@ namespace IoTFire.Backend.Api.Repositories.Implementation
         {
             return await _context.Sensors
                 .CountAsync(s => s.ZoneId == zoneId);
+        }
+        public async Task DisassociateFromZoneAsync(int zoneId)
+        {
+            var sensors = await _context.Sensors
+                .Where(s => s.ZoneId == zoneId)
+                .ToListAsync();
+
+            foreach (var sensor in sensors)
+                sensor.ZoneId = 0;
+
+            await _context.SaveChangesAsync();
         }
     }
 }

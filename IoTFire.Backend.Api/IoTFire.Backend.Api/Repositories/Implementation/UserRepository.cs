@@ -50,6 +50,12 @@ namespace IoTFire.Backend.Api.Repositories.Implementation
             await _context.SaveChangesAsync();
             return user;
         }
+
+        public async Task<IEnumerable<User>> GetByRoleAsync(EnumRole role)
+            => await _context.Users
+                .Where(u => u.Role == role && u.IsActive && !u.IsDeleted)
+                .OrderBy(u => u.FirstName)
+                .ToListAsync();
         public async Task<IEnumerable<User>> GetAllAsync()
             => await _context.Users.Where(u => u.IsActive).ToListAsync();
         public async Task<IEnumerable<User>> GetAllForAdminAsync()

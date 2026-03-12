@@ -5,6 +5,7 @@ namespace IoTFire.Backend.Api.Services.Interfaces
     public interface IUserManagementService
     {
         Task<IEnumerable<UserAdminDto>> GetAllUsersAsync();
+        Task<IEnumerable<UserAdminDto>> GetUsersByRoleAsync(string role);
         Task<IEnumerable<UserAdminDto>> GetPendingUsersAsync();
         Task<IEnumerable<UserAdminDto>> GetSuspendedUsersAsync();
 

@@ -22,6 +22,17 @@ namespace IoTFire.Backend.Api.Controllers
             var users = await _service.GetAllUsersAsync();
             return Ok(users);
         }
+
+        // GET /api/admin/users?role=Occupant
+        [HttpGet("users/by-role")]
+        public async Task<IActionResult> GetUsersByRole([FromQuery] string role)
+        {
+            if (string.IsNullOrWhiteSpace(role))
+                return BadRequest(new { message = "Le paramètre role est obligatoire." });
+
+            var users = await _service.GetUsersByRoleAsync(role);
+            return Ok(users);
+        }
         // Retourne les comptes en attente de validation
         [HttpGet("users/pending")]
         public async Task<IActionResult> GetPendingUsers()

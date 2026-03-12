@@ -36,66 +36,9 @@ namespace IoTFire.Backend.Api.Controllers
             return Ok(sensor);
         }
 
-        [Authorize(Roles = "Admin")]
-        [HttpPost]
-        public async Task<IActionResult> Create([FromBody] CreateSensorDto dto)
-        {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
+ 
 
-            try
-            {
-                var sensor = await _sensorService.CreateAsync(dto);
-
-                return CreatedAtAction(
-                    nameof(GetById),
-                    new { id = sensor.Id },
-                    sensor);
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
-        }
-
-        [Authorize(Roles = "Admin")]
-        [HttpPut("{id}")]
-        public async Task<IActionResult> Update(int id, [FromBody] UpdateSensorDto dto)
-        {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
-
-            var updated = await _sensorService.UpdateAsync(id, dto);
-
-            if (updated == null)
-                return NotFound(new { message = "Capteur introuvable." });
-
-            return Ok(updated);
-        }
-
-        [Authorize(Roles = "Admin")]
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> Delete(int id)
-        {
-            var result = await _sensorService.DeleteAsync(id);
-
-            if (!result)
-                return NotFound(new { message = "Capteur introuvable." });
-
-            return NoContent();
-        }
-
-        [HttpPost("{id}/simulate")]
-        public async Task<IActionResult> Simulate(int id)
-        {
-            var result = await _sensorService.SimulateValueAsync(id);
-
-            if (result == null)
-                return NotFound(new { message = "Capteur introuvable." });
-
-            return Ok(result);
-        }
-
+      
         [Authorize(Roles = "Occupant,Admin")]
         [HttpPost("thresholds")]
         public async Task<IActionResult> SetThresholds([FromBody] UpdateThresholdsDto dto)
