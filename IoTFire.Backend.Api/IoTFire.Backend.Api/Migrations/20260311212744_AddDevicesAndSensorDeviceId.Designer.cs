@@ -3,6 +3,7 @@ using System;
 using IoTFire.Backend.Api.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace IoTFire.Backend.Api.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260311212744_AddDevicesAndSensorDeviceId")]
+    partial class AddDevicesAndSensorDeviceId
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -60,10 +63,6 @@ namespace IoTFire.Backend.Api.Migrations
                         .HasColumnType("character varying(100)")
                         .HasColumnName("name");
 
-                    b.Property<int?>("OccupantId")
-                        .HasColumnType("integer")
-                        .HasColumnName("occupant_id");
-
                     b.Property<DateTime>("UpdatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone")
@@ -79,8 +78,6 @@ namespace IoTFire.Backend.Api.Migrations
                     b.HasIndex("DeviceId")
                         .IsUnique()
                         .HasDatabaseName("IX_devices_device_id");
-
-                    b.HasIndex("OccupantId");
 
                     b.HasIndex("ZoneId");
 
@@ -299,16 +296,10 @@ namespace IoTFire.Backend.Api.Migrations
 
             modelBuilder.Entity("IoTFire.Backend.Api.Models.Entities.Device", b =>
                 {
-                    b.HasOne("IoTFire.Backend.Api.Models.Entities.User", "Occupant")
-                        .WithMany()
-                        .HasForeignKey("OccupantId");
-
                     b.HasOne("IoTFire.Backend.Api.Models.Entities.Zone", "Zone")
                         .WithMany()
                         .HasForeignKey("ZoneId")
                         .OnDelete(DeleteBehavior.SetNull);
-
-                    b.Navigation("Occupant");
 
                     b.Navigation("Zone");
                 });

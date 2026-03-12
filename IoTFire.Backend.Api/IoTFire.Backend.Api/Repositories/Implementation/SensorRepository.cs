@@ -51,30 +51,9 @@ namespace IoTFire.Backend.Api.Repositories.Implementation
                 .AnyAsync(s => s.MacAddress == macAddress);
         }
 
-        public async Task<Sensor> CreateAsync(Sensor sensor)
-        {
-            await _context.Sensors.AddAsync(sensor);
-            await _context.SaveChangesAsync();
-            return sensor;
-        }
+       
 
-        public async Task<Sensor?> UpdateAsync(Sensor sensor)
-        {
-            sensor.UpdatedAt = DateTime.UtcNow;
-            _context.Sensors.Update(sensor);
-            await _context.SaveChangesAsync();
-            return sensor;
-        }
-
-        public async Task<bool> DeleteAsync(int id)
-        {
-            var sensor = await _context.Sensors.FindAsync(id);
-            if (sensor == null) return false;
-
-            _context.Sensors.Remove(sensor);
-            await _context.SaveChangesAsync();
-            return true;
-        }
+        
 
         public async Task<int> UpdateThresholdsByZoneAsync(int zoneId, float threshold)
         {

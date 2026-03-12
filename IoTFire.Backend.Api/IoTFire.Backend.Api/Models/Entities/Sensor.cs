@@ -41,6 +41,12 @@ namespace IoTFire.Backend.Api.Models.Entities
         [ForeignKey("ZoneId")]
         public Zone? Zone { get; set; }
 
+        [Column("device_id")]
+        public int? DeviceId { get; set; }
+
+        [ForeignKey("DeviceId")]
+        public Device? Device { get; set; }
+
         [Column("created_at")]
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 

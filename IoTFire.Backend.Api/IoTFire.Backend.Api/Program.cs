@@ -30,6 +30,8 @@ builder.Services.AddSingleton<JwtHelper>();
 builder.Services.AddScoped<IUserManagementService, UserManagementService>();
 builder.Services.AddScoped<IFamilyService, FamilyService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddScoped<IDeviceService, DeviceService>();
+builder.Services.AddScoped<IDeviceRepository, DeviceRepository>();
 
 // Sensors
 builder.Services.AddScoped<ISensorRepository, SensorRepository>();

@@ -1,4 +1,5 @@
 ﻿using IoTFire.Backend.Api.Models.DTOs.ManagementUsers;
+using IoTFire.Backend.Api.Models.Entities.Enums;
 using IoTFire.Backend.Api.Repositories.Interfaces;
 using IoTFire.Backend.Api.Services.Interfaces;
 
@@ -11,6 +12,15 @@ namespace IoTFire.Backend.Api.Services.Implementation
         public async Task<IEnumerable<UserAdminDto>> GetAllUsersAsync()
         {
             var users = await _repo.GetAllForAdminAsync();
+            return users.Select(MapToAdminDto);
+        }
+
+        public async Task<IEnumerable<UserAdminDto>> GetUsersByRoleAsync(string role)
+        {
+            if (!Enum.TryParse<EnumRole>(role, ignoreCase: true, out var parsedRole))
+                return Enumerable.Empty<UserAdminDto>();
+
+            var users = await _repo.GetByRoleAsync(parsedRole);
             return users.Select(MapToAdminDto);
         }
         public async Task<IEnumerable<UserAdminDto>> GetPendingUsersAsync()

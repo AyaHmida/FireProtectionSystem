@@ -7,9 +7,9 @@ namespace IoTFire.Backend.Api.Services.Interfaces
     {
         Task<IEnumerable<ZoneResponseDto>> GetAllAsync(int? userId = null);
         Task<ZoneResponseDto?> GetByIdAsync(int id);
-        Task<ZoneResponseDto> CreateAsync(CreateZoneDto dto, int userId);
-        Task<ZoneResponseDto?> UpdateAsync(int id, CreateZoneDto dto);
-        Task<bool> DeleteAsync(int id);
+        Task<(ZoneResponseDto? Dto, string? Error)> CreateAsync(CreateZoneDto dto);
+        Task<(ZoneResponseDto? Dto, string? Error)> UpdateAsync(int id, CreateZoneDto dto);
+        Task<(bool Success, string? Error)> DeleteAsync(int id);
         Task<int> GetSensorCountByZoneAsync(int zoneId);
     }
 }

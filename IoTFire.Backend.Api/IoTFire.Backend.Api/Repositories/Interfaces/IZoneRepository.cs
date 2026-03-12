@@ -10,5 +10,7 @@ namespace IoTFire.Backend.Api.Repositories.Interfaces
         Task<Zone?> UpdateAsync(Zone zone);
         Task<bool> DeleteAsync(int id);
         Task<int> GetSensorCountByZoneIdAsync(int zoneId);
+        Task DisassociateFromZoneAsync(int zoneId);
+
     }
 }

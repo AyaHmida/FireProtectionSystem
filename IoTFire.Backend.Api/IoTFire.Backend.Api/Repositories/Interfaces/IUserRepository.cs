@@ -1,4 +1,5 @@
 ﻿using IoTFire.Backend.Api.Models.Entities;
+using IoTFire.Backend.Api.Models.Entities.Enums;
 
 namespace IoTFire.Backend.Api.Repositories.Interfaces
 {
@@ -9,6 +10,8 @@ namespace IoTFire.Backend.Api.Repositories.Interfaces
         Task<User?> GetByIdAsync(int id);  
         Task<User> CreateAsync(User user);
         Task<User> UpdateAsync(User user);
+        Task<IEnumerable<User>> GetByRoleAsync(EnumRole role);
+
         Task<IEnumerable<User>> GetAllAsync();
 
         Task<IEnumerable<User>> GetAllForAdminAsync();   
