@@ -5,6 +5,7 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import { LoginPage } from './pages/LoginPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { ZonesPage } from './pages/ZonesPage';
+import { DevicesPage } from './pages/DevicesPage';
 import { SensorsPage } from './pages/SensorsPage';
 import { UsersPage } from './pages/UsersPage';
 import { LogsPage } from './pages/LogsPage';
@@ -48,6 +49,7 @@ const getPageLabel = (pathname: string) => {
   const labels: Record<string, string> = {
     '/dashboard': 'Dashboard',
     '/zones': 'Zones',
+    '/devices': 'Devices',
     '/sensors': 'Sensors',
     '/users': 'Users',
     '/logs': 'System Logs',
@@ -78,6 +80,14 @@ const App: React.FC = () => {
               element={
                 <ProtectedRoute>
                   <ZonesPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/devices"
+              element={
+                <ProtectedRoute>
+                  <DevicesPage />
                 </ProtectedRoute>
               }
             />

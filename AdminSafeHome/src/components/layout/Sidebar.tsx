@@ -12,6 +12,7 @@ import PrecisionManufacturingOutlinedIcon from '@mui/icons-material/PrecisionMan
 import LogoutOutlinedIcon from '@mui/icons-material/LogoutOutlined';
 import ShieldOutlinedIcon from '@mui/icons-material/ShieldOutlined';
 import ContactsRoundedIcon from '@mui/icons-material/ContactsRounded';
+import RouterOutlinedIcon from '@mui/icons-material/RouterOutlined';
 
 interface NavItem {
   id: string;
@@ -43,6 +44,8 @@ export const Sidebar: React.FC = () => {
       section: 'Infrastructure',
       items: [
         { id: 'zones', icon: MapOutlinedIcon, label: 'Zones', color: '#06b6d4' },
+            { id: 'devices', icon: RouterOutlinedIcon,          label: 'Devices', color: '#8b5cf6' }, // ← AJOUTÉ
+
         { id: 'sensors', icon: EdgesensorHighOutlinedIcon, label: 'Sensors', chip: '2', chipType: 'yellow', color: '#f59e0b' },
       ],
     },
