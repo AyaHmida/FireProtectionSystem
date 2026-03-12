@@ -1,38 +1,45 @@
 import { apiClient } from './api';
-import { Zone, CreateZoneDto, UpdateZoneDto } from '../types';
+import { Zone, CreateZoneDto, UpdateZoneDto, Occupant } from '../types';
 
 class ZoneManagementService {
-  // Récupérer toutes les zones
+
+
+  // zoneManagementService.ts — changer l'URL
+getOccupants() {
+  return apiClient.get<Occupant[]>('/admin/users/by-role?role=Occupant'); // ← corrigé
+}
+
+  // ── Toutes les zones (sans filtre) ─────────────────────────────
   getAllZones() {
     return apiClient.get<Zone[]>('/zones');
   }
 
-  // Récupérer une zone spécifique
+  // ── Zones filtrées par occupant ← NOUVEAU ──────────────────────
+  getZonesByOccupant(occupantId: number) {
+    return apiClient.get<Zone[]>(`/zones?userId=${occupantId}`);
+  }
+
+  // ── Zone par id ────────────────────────────────────────────────
   getZoneById(zoneId: number) {
     return apiClient.get<Zone>(`/zones/${zoneId}`);
   }
 
-  // Créer une nouvelle zone
+  // ── Créer (occupantUserId obligatoire) ─────────────────────────
   createZone(dto: CreateZoneDto) {
     return apiClient.post<Zone>('/zones', dto);
   }
 
-  // Mettre à jour une zone
+  // ── Modifier (occupantUserId obligatoire) ──────────────────────
   updateZone(zoneId: number, dto: UpdateZoneDto) {
     return apiClient.put<Zone>(`/zones/${zoneId}`, dto);
   }
 
-  // Supprimer une zone
+  // ── Supprimer ──────────────────────────────────────────────────
   deleteZone(zoneId: number) {
-    return apiClient.delete<{ success: boolean; message: string }>(`/zones/${zoneId}`);
+    return apiClient.delete<void>(`/zones/${zoneId}`);
   }
 
-  // Récupérer les zones avec leurs capteurs
-  getZonesWithSensors() {
-    return apiClient.get<Zone[]>('/zones?includeSensors=true');
-  }
-
-  // Récupérer le nombre de capteurs pour une zone donnée
+  // ── Nombre de capteurs ─────────────────────────────────────────
   getSensorCount(zoneId: number) {
     return apiClient.get<{ zoneId: number; sensorCount: number }>(
       `/zones/${zoneId}/sensor-count`

@@ -15,23 +15,32 @@ export interface Zone {
   name: string;
   description?: string;
   userId: number;
+  occupantName?: string;   // ← AJOUTÉ
+  sensorCount: number;
+  sensors?: Sensor[];
   createdAt: string;
   updatedAt: string;
-  sensors?: Sensor[];
-  // optional property returned by the backend count endpoint
-  sensorCount?: number;
 }
 
 export interface CreateZoneDto {
   name: string;
   description?: string;
+  occupantUserId: number;  // ← AJOUTÉ (obligatoire)
 }
-
+ 
 export interface UpdateZoneDto {
-  name?: string;
+  name: string;
   description?: string;
+  occupantUserId: number;  // ← AJOUTÉ
 }
+ 
 
+export interface Occupant {
+  id: number;
+  firstName: string;
+  lastName: string;
+  email: string;
+}
 // Sensor types - Updated to match backend model
 export enum SensorType {
   GAS = 'GAS',
@@ -51,14 +60,10 @@ export interface Sensor {
   id: number;
   macAddress: string;
   label: string;
-  type: SensorType | string;
-  status: SensorStatus | string;
-  thresholdValue: number;
-  lastValue: number;
-  zoneId: number;
-  zone?: Zone;
-  createdAt: string;
-  updatedAt: string;
+  type: string;
+  status: string;
+  zoneId?: number;
+  zoneName?: string;
 }
 
 export interface CreateSensorDto {

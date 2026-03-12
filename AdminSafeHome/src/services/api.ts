@@ -1,5 +1,5 @@
 // Configuration de base pour les appels API
-const API_BASE_URL = 'https://localhost:7182/api';
+const API_BASE_URL = 'http://localhost:7182/api';
 
 // Pages publiques qui ne nécessitent pas de redirection sur 401
 const PUBLIC_AUTH_PAGES = ['/login', '/register', '/forgot-password'];
