@@ -13,7 +13,7 @@ namespace IoTFire.Backend.Api.Repositories.Interfaces
         Task<IEnumerable<User>> GetByRoleAsync(EnumRole role);
 
         Task<IEnumerable<User>> GetAllAsync();
-
+        Task<IEnumerable<User>> GetFamilyMembersByOccupantAsync(int occupantId);
         Task<IEnumerable<User>> GetAllForAdminAsync();   
         Task<IEnumerable<User>> GetPendingUsersAsync();
         Task<IEnumerable<User>> GetActiveUsersAsync();   

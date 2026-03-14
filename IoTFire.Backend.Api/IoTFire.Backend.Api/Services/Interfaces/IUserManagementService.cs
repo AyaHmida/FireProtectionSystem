@@ -8,6 +8,7 @@ namespace IoTFire.Backend.Api.Services.Interfaces
         Task<IEnumerable<UserAdminDto>> GetUsersByRoleAsync(string role);
         Task<IEnumerable<UserAdminDto>> GetPendingUsersAsync();
         Task<IEnumerable<UserAdminDto>> GetSuspendedUsersAsync();
+        Task<IEnumerable<UserAdminDto>> GetFamilyMembersAsync(int occupantId);
 
         Task<AdminActionResponseDto> ValidateUserAsync(int userId);
         Task<AdminActionResponseDto> SuspendUserAsync(int userId, string reason);
