@@ -44,9 +44,8 @@ export const Sidebar: React.FC = () => {
       section: 'Infrastructure',
       items: [
         { id: 'zones', icon: MapOutlinedIcon, label: 'Zones', color: '#06b6d4' },
-            { id: 'devices', icon: RouterOutlinedIcon,          label: 'Devices', color: '#8b5cf6' }, // ← AJOUTÉ
+        { id: 'devices', icon: RouterOutlinedIcon,          label: 'Devices', color: '#8b5cf6' }, // ← AJOUTÉ
 
-        { id: 'sensors', icon: EdgesensorHighOutlinedIcon, label: 'Sensors', chip: '2', chipType: 'yellow', color: '#f59e0b' },
       ],
     },
     {

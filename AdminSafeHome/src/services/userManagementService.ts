@@ -6,6 +6,9 @@ class UserManagementService {
   getAllUsers() {
     return apiClient.get<UserAdminDto[]>('/admin/users');
   }
+  getFamilyMembers(occupantId: number) {
+  return apiClient.get<UserAdminDto[]>(`/admin/users/${occupantId}/family-members`);
+}
 
   // Récupérer les utilisateurs en attente
   getPendingUsers() {
