@@ -25,6 +25,34 @@ namespace IoTFire.Backend.Api.Services.Implementation
             return zones.Select(MapToDto);
         }
 
+        public async Task<(IEnumerable<ZoneResponseDto> Zones, string? Error)> GetMyZonesAsync(int userId)
+        {
+            var user = await _userRepository.GetByIdAsync(userId);
+            if (user == null)
+                return (Enumerable.Empty<ZoneResponseDto>(), "Utilisateur introuvable.");
+
+            int targetUserId;
+
+            if (user.Role == EnumRole.Occupant)
+            {
+                targetUserId = userId;
+            }
+            else if (user.Role == EnumRole.FamilyMember)
+            {
+                if (user.ParentUserId == null)
+                    return (Enumerable.Empty<ZoneResponseDto>(), "Aucun occupant parent associé.");
+
+                targetUserId = user.ParentUserId.Value;
+            }
+            else
+            {
+                return (Enumerable.Empty<ZoneResponseDto>(), "Rôle non autorisé.");
+            }
+
+            var zones = await _zoneRepository.GetAllAsync(targetUserId);
+            return (zones.Select(MapToDto), null);
+        }
+
         public async Task<ZoneResponseDto?> GetByIdAsync(int id)
         {
             var zone = await _zoneRepository.GetByIdAsync(id);
@@ -94,14 +122,14 @@ namespace IoTFire.Backend.Api.Services.Implementation
         public async Task<int> GetSensorCountByZoneAsync(int zoneId)
             => await _zoneRepository.GetSensorCountByZoneIdAsync(zoneId);
 
-        // ── Mapper — OccupantName rempli depuis z.User ────────────────
         private static ZoneResponseDto MapToDto(Zone z) => new()
         {
             Id = z.Id,
             Name = z.Name,
             Description = z.Description,
             UserId = z.UserId,
-            OccupantName = z.User != null              // ← AJOUTÉ
+            OccupantName = z.User != null             
+
                             ? $"{z.User.FirstName} {z.User.LastName}"
                             : null,
             SensorCount = z.Sensors?.Count ?? 0,

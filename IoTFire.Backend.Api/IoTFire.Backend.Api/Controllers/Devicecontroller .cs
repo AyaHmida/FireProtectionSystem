@@ -18,9 +18,7 @@ namespace IoTFire.Backend.Api.Controllers
             _deviceService = deviceService;
         }
 
-        // ──────────────────────────────────────────────────────────
-        //  GET /api/devices
-        //  Liste tous les devices avec statut En ligne / Hors ligne
+        
         [HttpGet]
         public async Task<IActionResult> GetAll([FromQuery] int? userId)
         {
@@ -39,10 +37,7 @@ namespace IoTFire.Backend.Api.Controllers
             return Ok(device);
         }
 
-        // ──────────────────────────────────────────────────────────
-        //  POST /api/devices
-        //  Body : { "deviceId": "ESP32-001", "name": "...", "description": "..." }
-        // ──────────────────────────────────────────────────────────
+   
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] CreateDeviceDto dto)
         {
@@ -56,10 +51,7 @@ namespace IoTFire.Backend.Api.Controllers
             return CreatedAtAction(nameof(GetById), new { id = created!.Id }, created);
         }
 
-        // ──────────────────────────────────────────────────────────
-        //  PUT /api/devices/{id}
-        //  Body : { "deviceId": "ESP32-001", "name": "...", "description": "..." }
-        // ──────────────────────────────────────────────────────────
+       
         [HttpPut("{id:int}")]
         public async Task<IActionResult> Update(int id, [FromBody] CreateDeviceDto dto)
         {
@@ -75,10 +67,6 @@ namespace IoTFire.Backend.Api.Controllers
             return Ok(updated);
         }
 
-        // ──────────────────────────────────────────────────────────
-        //  DELETE /api/devices/{id}
-        //  Supprime le device — les sensors liés auront device_id = null
-        // ──────────────────────────────────────────────────────────
         [HttpDelete("{id:int}")]
         public async Task<IActionResult> Delete(int id)
         {
@@ -91,11 +79,7 @@ namespace IoTFire.Backend.Api.Controllers
             return NoContent();
         }
 
-        // ──────────────────────────────────────────────────────────
-        //  PUT /api/devices/{id}/assign-zone  (US-A3)
-        //  Associe ou réassigne un device à une zone d'un occupant
-        //  Body : { "zoneId": 3 }
-        // ──────────────────────────────────────────────────────────
+       
         [HttpPut("{id:int}/assign-zone")]
         public async Task<IActionResult> AssignToZone(int id, [FromBody] AssignDeviceToZoneDto dto)
         {
