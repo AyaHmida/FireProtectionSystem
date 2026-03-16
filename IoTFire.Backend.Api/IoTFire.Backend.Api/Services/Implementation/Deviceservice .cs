@@ -18,9 +18,7 @@ namespace IoTFire.Backend.Api.Services.Implementation
             _zoneRepository = zoneRepository;
         }
 
-        // ─────────────────────────────────────────────────────────────
-        //  GET ALL
-        // ─────────────────────────────────────────────────────────────
+
         public async Task<IEnumerable<DeviceResponseDto>> GetAllAsync(int? userId = null)
         {
             var devices = await _deviceRepository.GetAllAsync(userId);
@@ -33,10 +31,7 @@ namespace IoTFire.Backend.Api.Services.Implementation
             return device == null ? null : MapToDto(device);
         }
 
-        // ─────────────────────────────────────────────────────────────
-        //  CREATE (US-A2)
-        //  DeviceId physique doit être unique
-        // ─────────────────────────────────────────────────────────────
+ 
         public async Task<(DeviceResponseDto? Dto, string? Error)> CreateAsync(CreateDeviceDto dto)
         {
             var existing = await _deviceRepository.GetByDeviceIdStringAsync(dto.DeviceId);
@@ -48,7 +43,7 @@ namespace IoTFire.Backend.Api.Services.Implementation
                 DeviceId = dto.DeviceId,
                 Name = dto.Name,
                 Description = dto.Description,
-                OccupantId = dto.OccupantUserId,  // ← AJOUTER
+                OccupantId = dto.OccupantUserId,  
                 IsOnline = false,
                 ZoneId = null,
                 CreatedAt = DateTime.UtcNow,
@@ -59,9 +54,7 @@ namespace IoTFire.Backend.Api.Services.Implementation
             return (MapToDto(created), null);
         }
 
-        // ─────────────────────────────────────────────────────────────
-        //  UPDATE (US-A2) — modifie DeviceId, nom, description
-        // ─────────────────────────────────────────────────────────────
+      
         public async Task<(DeviceResponseDto? Dto, string? Error)> UpdateAsync(int id, CreateDeviceDto dto)
         {
             var device = await _deviceRepository.GetByIdAsync(id);
@@ -87,11 +80,7 @@ namespace IoTFire.Backend.Api.Services.Implementation
                 : (MapToDto(updated), null);
         }
 
-        // ─────────────────────────────────────────────────────────────
-        //  DELETE (US-A2)
-        //  La désassociation zone est automatique via la suppression
-        //  Les sensors liés auront device_id → null (cascade réglée en BDD)
-        // ─────────────────────────────────────────────────────────────
+     
         public async Task<(bool Success, string? Error)> DeleteAsync(int id)
         {
             var device = await _deviceRepository.GetByIdAsync(id);
@@ -104,10 +93,7 @@ namespace IoTFire.Backend.Api.Services.Implementation
                 : (false, "Échec de la suppression.");
         }
 
-        // ─────────────────────────────────────────────────────────────
-        //  ASSIGN TO ZONE (US-A3)
-        //  Un device → une seule zone à la fois (réassignation libre)
-        // ─────────────────────────────────────────────────────────────
+      
         public async Task<(DeviceResponseDto? Dto, string? Error)> AssignToZoneAsync(
             int id, AssignDeviceToZoneDto dto)
         {
@@ -128,9 +114,7 @@ namespace IoTFire.Backend.Api.Services.Implementation
                 : (MapToDto(updated), null);
         }
 
-        // ─────────────────────────────────────────────────────────────
-        //  UNASSIGN FROM ZONE
-        // ─────────────────────────────────────────────────────────────
+     
         public async Task<(DeviceResponseDto? Dto, string? Error)> UnassignFromZoneAsync(int id)
         {
             var device = await _deviceRepository.GetByIdAsync(id);
@@ -149,9 +133,7 @@ namespace IoTFire.Backend.Api.Services.Implementation
                 : (MapToDto(updated), null);
         }
 
-        // ─────────────────────────────────────────────────────────────
-        //  MAPPING
-        // ─────────────────────────────────────────────────────────────
+
         private static DeviceResponseDto MapToDto(Device d) => new()
         {
             Id = d.Id,

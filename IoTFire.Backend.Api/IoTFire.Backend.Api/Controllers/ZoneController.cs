@@ -27,9 +27,11 @@ namespace IoTFire.Backend.Api.Controllers
             var result = await _zoneService.GetAllAsync(userId);
             return Ok(result);
         }
-        //pour l'occupant voit uniquement SES propres zones
+
+
+
         [HttpGet("my-zones")]
-        [Authorize(Roles = "Occupant")]
+        [Authorize(Roles = "Occupant,FamilyMember")]
         public async Task<IActionResult> GetMyZones()
         {
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -37,9 +39,14 @@ namespace IoTFire.Backend.Api.Controllers
             if (!int.TryParse(userIdClaim, out var userId))
                 return BadRequest(new { message = "Utilisateur introuvable dans le token." });
 
-            var result = await _zoneService.GetAllAsync(userId);
-            return Ok(result);
+            var (zones, error) = await _zoneService.GetMyZonesAsync(userId);
+
+            if (error != null)
+                return BadRequest(new { message = error });
+
+            return Ok(zones);
         }
+
 
 
         [HttpGet("{id:int}")]

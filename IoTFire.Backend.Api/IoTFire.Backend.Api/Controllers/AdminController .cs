@@ -16,10 +16,7 @@ namespace IoTFire.Backend.Api.Controllers
         public AdminController(IUserManagementService service)
             => _service = service;
 
-        // ──────────────────────────────────────────────────────────
-        //  GET /api/admin/users
-        //  Tous les users sauf FamilyMember et supprimés
-        // ──────────────────────────────────────────────────────────
+        
         [HttpGet("users")]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> GetAllUsers()
@@ -28,10 +25,7 @@ namespace IoTFire.Backend.Api.Controllers
             return Ok(users);
         }
 
-        // ──────────────────────────────────────────────────────────
-        //  GET /api/admin/users/by-role?role=Occupant
-        //  Pour le dropdown zones/devices
-        // ──────────────────────────────────────────────────────────
+    
         [HttpGet("users/by-role")]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> GetUsersByRole([FromQuery] string role)
@@ -43,10 +37,6 @@ namespace IoTFire.Backend.Api.Controllers
             return Ok(users);
         }
 
-        // ──────────────────────────────────────────────────────────
-        //  GET /api/admin/users/pending
-        //  Occupants en attente de validation uniquement
-        // ──────────────────────────────────────────────────────────
         [HttpGet("users/pending")]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> GetPendingUsers()
@@ -55,10 +45,6 @@ namespace IoTFire.Backend.Api.Controllers
             return Ok(users);
         }
 
-        // ──────────────────────────────────────────────────────────
-        //  GET /api/admin/users/suspended
-        //  Occupants suspendus uniquement
-        // ──────────────────────────────────────────────────────────
         [HttpGet("users/suspended")]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> GetSuspendedUsers()
@@ -67,10 +53,7 @@ namespace IoTFire.Backend.Api.Controllers
             return Ok(users);
         }
 
-        // ──────────────────────────────────────────────────────────
-        //  GET /api/admin/users/{id}/family-members
-        //  Admin voit les membres de famille d'un occupant spécifique
-        // ──────────────────────────────────────────────────────────
+        
         [HttpGet("users/{id:int}/family-members")]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> GetFamilyMembers(int id)
@@ -79,11 +62,7 @@ namespace IoTFire.Backend.Api.Controllers
             return Ok(members);
         }
 
-        // ──────────────────────────────────────────────────────────
-        //  GET /api/admin/users/my-family
-        //  Occupant voit UNIQUEMENT ses propres membres de famille
-        //  userId extrait du token JWT — impossible de voir ceux d'un autre
-        // ──────────────────────────────────────────────────────────
+ 
         [HttpGet("users/my-family")]
         [Authorize(Roles = "Occupant")]
         public async Task<IActionResult> GetMyFamilyMembers()
@@ -97,9 +76,7 @@ namespace IoTFire.Backend.Api.Controllers
             return Ok(members);
         }
 
-        // ──────────────────────────────────────────────────────────
-        //  PATCH /api/admin/users/{id}/validate
-        // ──────────────────────────────────────────────────────────
+      
         [HttpPatch("users/{id:int}/validate")]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> ValidateUser(int id)
@@ -108,10 +85,7 @@ namespace IoTFire.Backend.Api.Controllers
             return result.Success ? Ok(result) : BadRequest(result);
         }
 
-        // ──────────────────────────────────────────────────────────
-        //  PATCH /api/admin/users/{id}/suspend
-        //  Body : { "reason": "..." }
-        // ──────────────────────────────────────────────────────────
+
         [HttpPatch("users/{id:int}/suspend")]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> SuspendUser(int id, [FromBody] SuspendUserDto dto)
@@ -123,9 +97,7 @@ namespace IoTFire.Backend.Api.Controllers
             return result.Success ? Ok(result) : BadRequest(result);
         }
 
-        // ──────────────────────────────────────────────────────────
-        //  PATCH /api/admin/users/{id}/reactivate
-        // ──────────────────────────────────────────────────────────
+ 
         [HttpPatch("users/{id:int}/reactivate")]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> ReactivateUser(int id)
@@ -134,10 +106,6 @@ namespace IoTFire.Backend.Api.Controllers
             return result.Success ? Ok(result) : BadRequest(result);
         }
 
-        // ──────────────────────────────────────────────────────────
-        //  DELETE /api/admin/users/{id}
-        //  Soft delete
-        // ──────────────────────────────────────────────────────────
         [HttpDelete("users/{id:int}")]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> DeleteUser(int id)

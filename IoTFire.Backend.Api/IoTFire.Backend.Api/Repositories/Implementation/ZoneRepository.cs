@@ -17,8 +17,8 @@ namespace IoTFire.Backend.Api.Repositories.Implementation
         public async Task<IEnumerable<Zone>> GetAllAsync(int? userId = null)
         {
             var query = _context.Zones
-                  .Include(z => z.User)       // ← AJOUTÉ
-            .Include(z => z.Sensors)    // ← AJOUTÉ pour SensorCount
+                  .Include(z => z.User)      
+            .Include(z => z.Sensors)    
                 .AsQueryable();
             if (userId.HasValue)
                 query = query.Where(z => z.UserId == userId.Value);
@@ -29,8 +29,8 @@ namespace IoTFire.Backend.Api.Repositories.Implementation
         public async Task<Zone?> GetByIdAsync(int id)
         {
             return await _context.Zones
-                 .Include(z => z.User)       // ← AJOUTÉ
-            .Include(z => z.Sensors)    // ← AJOUTÉ
+                 .Include(z => z.User)      
+            .Include(z => z.Sensors)    
             .FirstOrDefaultAsync(z => z.Id == id);
         }
 

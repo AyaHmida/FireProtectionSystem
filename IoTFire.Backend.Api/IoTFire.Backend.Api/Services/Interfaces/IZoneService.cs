@@ -6,6 +6,7 @@ namespace IoTFire.Backend.Api.Services.Interfaces
     public interface IZoneService
     {
         Task<IEnumerable<ZoneResponseDto>> GetAllAsync(int? userId = null);
+        Task<(IEnumerable<ZoneResponseDto> Zones, string? Error)> GetMyZonesAsync(int userId);
         Task<ZoneResponseDto?> GetByIdAsync(int id);
         Task<(ZoneResponseDto? Dto, string? Error)> CreateAsync(CreateZoneDto dto);
         Task<(ZoneResponseDto? Dto, string? Error)> UpdateAsync(int id, CreateZoneDto dto);

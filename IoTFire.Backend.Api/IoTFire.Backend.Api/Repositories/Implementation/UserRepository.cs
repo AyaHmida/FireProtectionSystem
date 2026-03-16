@@ -44,36 +44,32 @@ namespace IoTFire.Backend.Api.Repositories.Implementation
             return user;
         }
 
-        // ── Admin : liste principale ───────────────────────────────
-        // FamilyMember exclus — ils sont gérés via leur occupant parent
+   
         public async Task<IEnumerable<User>> GetAllForAdminAsync()
             => await _context.Users
                 .Where(u => !u.IsDeleted
-                         && u.Role != EnumRole.FamilyMember)  // ← EXCLU
+                         && u.Role != EnumRole.FamilyMember) 
                 .OrderByDescending(u => u.CreatedAt)
                 .ToListAsync();
 
-        // ── Admin : comptes en attente ─────────────────────────────
-        // Uniquement les Occupants en attente (pas Admin, pas FamilyMember)
+       
         public async Task<IEnumerable<User>> GetPendingUsersAsync()
             => await _context.Users
                 .Where(u => !u.IsActive
                          && !u.IsDeleted
-                         && u.Role == EnumRole.Occupant)  // ← uniquement Occupant
+                         && u.Role == EnumRole.Occupant)  
                 .OrderBy(u => u.CreatedAt)
                 .ToListAsync();
 
-        // ── Admin : comptes suspendus ──────────────────────────────
-        // Uniquement les Occupants suspendus
+      
         public async Task<IEnumerable<User>> GetSuspendedUsersAsync()
             => await _context.Users
                 .Where(u => u.IsSuspended
                          && !u.IsDeleted
-                         && u.Role == EnumRole.Occupant)  // ← uniquement Occupant
+                         && u.Role == EnumRole.Occupant) 
                 .OrderBy(u => u.FirstName)
                 .ToListAsync();
 
-        // ── Filtre par rôle (pour le dropdown occupant) ────────────
         public async Task<IEnumerable<User>> GetByRoleAsync(EnumRole role)
             => await _context.Users
                 .Where(u => u.Role == role
@@ -83,8 +79,7 @@ namespace IoTFire.Backend.Api.Repositories.Implementation
                 .OrderBy(u => u.FirstName)
                 .ToListAsync();
 
-        // ── Family Members d'un occupant ──────────────────────────
-        // Utilisé par l'admin (id en param) et l'occupant (id du token)
+       
         public async Task<IEnumerable<User>> GetFamilyMembersByOccupantAsync(int occupantId)
             => await _context.Users
                 .Where(u => u.ParentUserId == occupantId
@@ -92,7 +87,7 @@ namespace IoTFire.Backend.Api.Repositories.Implementation
                 .OrderBy(u => u.FirstName)
                 .ToListAsync();
 
-        // ── Général ────────────────────────────────────────────────
+
         public async Task<IEnumerable<User>> GetAllAsync()
             => await _context.Users
                 .Where(u => u.IsActive && !u.IsDeleted)

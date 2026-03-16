@@ -42,7 +42,7 @@ namespace IoTFire.Backend.Api.Services.Implementation
 
        
 
-        // ── Mapper ────────────────────────────────────────────────
+
         private static SensorResponseDto MapToDto(Sensor s) => new()
         {
             Id             = s.Id,

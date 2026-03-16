@@ -12,14 +12,12 @@ namespace IoTFire.Backend.Api.Services.Implementation
 
         public UserManagementService(IUserRepository repo) => _repo = repo;
 
-        // ── GET ALL (FamilyMember exclus côté repository) ──────────
         public async Task<IEnumerable<UserAdminDto>> GetAllUsersAsync()
         {
             var users = await _repo.GetAllForAdminAsync();
             return users.Select(MapToAdminDto);
         }
 
-        // ── GET BY ROLE ────────────────────────────────────────────
         public async Task<IEnumerable<UserAdminDto>> GetUsersByRoleAsync(string role)
         {
             if (!Enum.TryParse<EnumRole>(role, ignoreCase: true, out var parsedRole))
@@ -29,24 +27,18 @@ namespace IoTFire.Backend.Api.Services.Implementation
             return users.Select(MapToAdminDto);
         }
 
-        // ── PENDING (Occupants uniquement) ─────────────────────────
         public async Task<IEnumerable<UserAdminDto>> GetPendingUsersAsync()
         {
             var users = await _repo.GetPendingUsersAsync();
             return users.Select(MapToAdminDto);
         }
 
-        // ── SUSPENDED (Occupants uniquement) ──────────────────────
         public async Task<IEnumerable<UserAdminDto>> GetSuspendedUsersAsync()
         {
             var users = await _repo.GetSuspendedUsersAsync();
             return users.Select(MapToAdminDto);
         }
 
-        // ── FAMILY MEMBERS d'un occupant ──────────────────────────
-        // Utilisé par :
-        //   Admin     → GET /api/admin/users/{id}/family-members
-        //   Occupant  → GET /api/users/my-family  (id vient du token)
         public async Task<IEnumerable<UserAdminDto>> GetFamilyMembersAsync(int occupantId)
         {
             // Vérifier que l'occupant existe
@@ -58,7 +50,6 @@ namespace IoTFire.Backend.Api.Services.Implementation
             return members.Select(MapToAdminDto);
         }
 
-        // ── VALIDATE ───────────────────────────────────────────────
         public async Task<AdminActionResponseDto> ValidateUserAsync(int userId)
         {
             var user = await _repo.GetByIdAsync(userId);
@@ -75,7 +66,6 @@ namespace IoTFire.Backend.Api.Services.Implementation
             return Ok("Account successfully validated.", user);
         }
 
-        // ── SUSPEND ────────────────────────────────────────────────
         public async Task<AdminActionResponseDto> SuspendUserAsync(int userId, string reason)
         {
             var user = await _repo.GetByIdAsync(userId);
@@ -95,7 +85,6 @@ namespace IoTFire.Backend.Api.Services.Implementation
             return Ok("Account successfully suspended.", user);
         }
 
-        // ── REACTIVATE ─────────────────────────────────────────────
         public async Task<AdminActionResponseDto> ReactivateUserAsync(int userId)
         {
             var user = await _repo.GetByIdAsync(userId);
@@ -112,7 +101,6 @@ namespace IoTFire.Backend.Api.Services.Implementation
             return Ok("Account successfully reactivated.", user);
         }
 
-        // ── DELETE (soft) ──────────────────────────────────────────
         public async Task<AdminActionResponseDto> DeleteUserAsync(int userId)
         {
             var user = await _repo.GetByIdAsync(userId);
@@ -126,8 +114,6 @@ namespace IoTFire.Backend.Api.Services.Implementation
 
             return Ok("Account successfully deleted (soft delete).", user);
         }
-
-        // ── HELPERS ────────────────────────────────────────────────
         private static AdminActionResponseDto Ok(string msg, User? user = null) => new()
         {
             Success = true,

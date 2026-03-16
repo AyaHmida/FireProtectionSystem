@@ -28,12 +28,10 @@ namespace IoTFire.Backend.Api.Services.Implementation
         public async Task<(bool Success, string Message)> InviteMemberAsync(
             int occupantId, InviteFamilyMemberDto dto)
         {
-            // 1. Récupérer l'occupant pour personnaliser l'email
             var occupant = await _context.Users.FindAsync(occupantId);
             if (occupant == null)
                 return (false, "Occupant not found.");
 
-            // Normaliser l'email et générer un token URL-safe unique (pré-calculé pour réutilisation)
             var email = dto.Email?.Trim().ToLower() ?? string.Empty;
             var rawToken = Convert.ToBase64String(Guid.NewGuid().ToByteArray())
                          + Convert.ToBase64String(Guid.NewGuid().ToByteArray());
@@ -44,7 +42,6 @@ namespace IoTFire.Backend.Api.Services.Implementation
             var emailSubject = $"Invitation to join the system {occupant.FirstName} {occupant.LastName}";
             var emailBody = BuildInvitationEmail(occupant, invitationLink);
 
-            // 2. Vérifier si un compte (actif ou non) existe déjà avec cet email
             var existingUser = await _context.Users
                 .FirstOrDefaultAsync(u => u.Email == email);
 
@@ -55,13 +52,12 @@ namespace IoTFire.Backend.Api.Services.Implementation
                     return (false, "An active account already exists with this email address.");
                 }
 
-                // s'il s'agit déjà d'une invitation envoyée par le même occupant et non expirée
+
                 if (existingUser.ParentUserId == occupantId && existingUser.TokenExpiration > DateTime.UtcNow)
                 {
                     return (false, "An invitation is already pending for this email. Please wait until it expires or revoke it.");
                 }
 
-                // s'il s'agit d'une invitation expirée et appartenant au même occupant, réutiliser l'enregistrement
                 if (existingUser.ParentUserId == occupantId && (existingUser.TokenExpiration == null || existingUser.TokenExpiration <= DateTime.UtcNow))
                 {
                     existingUser.ResetToken = token;
@@ -76,29 +72,26 @@ namespace IoTFire.Backend.Api.Services.Implementation
                         return (false, "Error updating the invitation in the database." + dbEx.Message);
                     }
 
-                    // envoyer l'email d'invitation en réutilisant le lien
                     await _emailService.SendEmailAsync(email, emailSubject, emailBody);
 
                     return (true, "Invitation successfully resent. The link expires in 48 hours.");
                 }
 
-                // sinon l'email est déjà enregistré pour un autre occupant (ou situation ambiguë)
                 return (false, "An account or invitation already exists for this email address.");
             }
 
-            // 5. Créer l'utilisateur "fantôme" (invitation en attente)
             var pendingMember = new User
             {
-                FirstName = "",               // sera rempli lors de l'acceptation
-                LastName = "",               // sera rempli lors de l'acceptation
+                FirstName = "",             
+                LastName = "",              
                 Email = email,
-                PasswordHash = "",           // sera rempli lors de l'acceptation
-                PhoneNumber = "",               // sera rempli lors de l'acceptation
+                PasswordHash = "",          
+                PhoneNumber = "",               
                 Role = EnumRole.FamilyMember,
                 ParentUserId = occupantId,
-                ResetToken = token,        // réutilisation du champ pour le token d'invitation
+                ResetToken = token,        
                 TokenExpiration = DateTime.UtcNow.AddHours(48),
-                IsActive = false,            // compte inactif jusqu'à acceptation
+                IsActive = false,           
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
             };
@@ -110,11 +103,9 @@ namespace IoTFire.Backend.Api.Services.Implementation
             }
             catch (DbUpdateException dbEx)
             {
-                // Retourner une erreur lisible sans exposer les détails internes
                 return (false, "Error creating the invitation in the database. Details:" + dbEx.Message);
             }
 
-            // 6. Envoyer l'email d'invitation (déjà préparé)tt
             await _emailService.SendEmailAsync(email, emailSubject, emailBody);
             return (true, "Invitation sent successfully. The link expires in 48 hours.");
         }
@@ -122,7 +113,6 @@ namespace IoTFire.Backend.Api.Services.Implementation
        
         public async Task<FamilyListResponseDto> GetFamilyMembersAsync(int occupantId)
         {
-            // Membres dont le compte est actif
             var activeMembers = await _context.Users
                 .Where(u => u.ParentUserId == occupantId && u.IsActive)
                 .Select(u => new FamilyMemberDto
@@ -137,7 +127,6 @@ namespace IoTFire.Backend.Api.Services.Implementation
                 })
                 .ToListAsync();
 
-            // Invitations en attente (compte inactif, token pas encore expiré)
             var pendingInvitations = await _context.Users
                 .Where(u =>
                     u.ParentUserId == occupantId &&
@@ -171,7 +160,6 @@ namespace IoTFire.Backend.Api.Services.Implementation
 
             if (member.IsActive)
             {
-                // Membre actif : désactiver son compte
                 member.IsActive = false;
                 member.UpdatedAt = DateTime.UtcNow;
                 await _context.SaveChangesAsync();
@@ -179,7 +167,6 @@ namespace IoTFire.Backend.Api.Services.Implementation
             }
             else
             {
-                // Invitation en attente : supprimer le User "fantôme"
                 _context.Users.Remove(member);
                 await _context.SaveChangesAsync();
                 return (true, $"L'invitation pour {member.Email} a été annulée.");
@@ -206,7 +193,6 @@ namespace IoTFire.Backend.Api.Services.Implementation
         public async Task<(bool Success, string Message)> AcceptInvitationAsync(
             AcceptInvitationDto dto)
         {
-            // 1. Retrouver le User fantôme
             var pendingUser = await _context.Users
                 .FirstOrDefaultAsync(u =>
                     u.ResetToken == dto.Token &&
@@ -216,13 +202,11 @@ namespace IoTFire.Backend.Api.Services.Implementation
             if (pendingUser == null)
                 return (false, "Invalid or expired link. Request a new invitation.");
 
-            // 2. Compléter le profil
             pendingUser.LastName = dto.LastName;
             pendingUser.FirstName = dto.FirstName;
             pendingUser.PhoneNumber = dto.PhoneNumber ?? "";
             pendingUser.PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.PasswordHash);
 
-            // 3. Activer le compte et effacer le token
             pendingUser.IsActive = true;
             pendingUser.ResetToken = null;
             pendingUser.TokenExpiration = null;

@@ -14,18 +14,18 @@ namespace IoTFire.Backend.Api.Repositories.Implementation
             _context = context;
         }
 
-        // Include Zone → User pour afficher OccupantName
-        // Include Sensors pour afficher SensorCount
         public async Task<IEnumerable<Device>> GetAllAsync(int? userId = null)
         {
             var query = _context.Devices
                 .Include(d => d.Zone)
-                .Include(d => d.Occupant)   // ← direct
+                .Include(d => d.Occupant) 
+
                 .Include(d => d.Sensors)
                 .AsQueryable();
 
             if (userId.HasValue)
-                query = query.Where(d => d.OccupantId == userId.Value); // ← direct
+                query = query.Where(d => d.OccupantId == userId.Value); 
+
 
             return await query.OrderByDescending(d => d.CreatedAt).ToListAsync();
         }
