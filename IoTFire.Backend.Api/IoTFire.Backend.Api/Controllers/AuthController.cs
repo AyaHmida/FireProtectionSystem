@@ -1,6 +1,8 @@
 ﻿using IoTFire.Backend.Api.Models.DTOs.Auth;
 using IoTFire.Backend.Api.Services.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace IoTFire.Backend.Api.Controllers
 {
@@ -52,6 +54,25 @@ namespace IoTFire.Backend.Api.Controllers
             return result.Success
                 ? Ok(result)
                 : Unauthorized(result);
+        }
+
+        [HttpPut("change-password")]
+        [Authorize]  
+        public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordDto dto)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!int.TryParse(userIdClaim, out var userId))
+                return Unauthorized(new { message = "Token invalide." });
+
+            var (success, error) = await _authService.ChangePasswordAsync(userId, dto);
+
+            if (!success)
+                return BadRequest(new { message = error });
+
+            return Ok(new { message = "Mot de passe modifié avec succès." });
         }
 
     }
