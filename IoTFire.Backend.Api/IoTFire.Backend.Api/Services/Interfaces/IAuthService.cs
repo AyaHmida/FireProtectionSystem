@@ -7,5 +7,7 @@ namespace IoTFire.Backend.Api.Services.Interfaces
        
         Task<RegisterResponseDto> RegisterAsync(RegisterRequestDto request);
         Task<AuthResponseDto> LoginAsync(LoginDto dto);
+        Task<(bool Success, string? Error)> ChangePasswordAsync(
+            int userId, ChangePasswordDto dto);
     }
 }

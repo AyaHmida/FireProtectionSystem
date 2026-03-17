@@ -120,7 +120,28 @@ namespace IoTFire.Backend.Api.Services.Implementation
             };
         }
 
-         private static UserDto MapToDto(User user) => new UserDto
+        public async Task<(bool Success, string? Error)> ChangePasswordAsync(
+            int userId, ChangePasswordDto dto)
+        {
+            var user = await _userRepository.GetByIdAsync(userId);
+            if (user == null)
+                return (false, "Utilisateur introuvable.");
+
+            bool isCurrentValid = BCrypt.Net.BCrypt.Verify(dto.CurrentPassword, user.PasswordHash);
+            if (!isCurrentValid)
+                return (false, "Mot de passe actuel incorrect.");
+
+            bool isSamePassword = BCrypt.Net.BCrypt.Verify(dto.NewPassword, user.PasswordHash);
+            if (isSamePassword)
+                return (false, "Le nouveau mot de passe doit être différent de l'ancien.");
+
+            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.NewPassword);
+            user.UpdatedAt = DateTime.UtcNow;
+            await _userRepository.UpdateAsync(user);
+
+            return (true, null);
+        }
+        private static UserDto MapToDto(User user) => new UserDto
         {
             Id = user.Id,
             FirstName = user.FirstName,
