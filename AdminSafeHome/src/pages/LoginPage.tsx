@@ -44,13 +44,17 @@ export const LoginPage: React.FC = () => {
             width: 40,
             height: 40,
             borderRadius: 10,
-            background: 'linear-gradient(135deg,#7c3aed,#4f46e5)',
+  background: 'linear-gradient(135deg, #E24B4A, #a32d2d)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             fontSize: 20
           }}>
-            🛡️
+            <img
+    src="/fireguard-icon.svg"
+    alt="FireGuard"
+    style={{ width: 28, height: 28 }}
+  />
           </div>
           <div>
             <div style={{ fontWeight: 700, fontSize: 15 }}>SafeHome Admin</div>
@@ -130,25 +134,34 @@ export const LoginPage: React.FC = () => {
               required
             />
           </div>
-          <div style={{
-            padding: '10px 12px',
-            background: 'rgba(124,58,237,.08)',
-            borderRadius: 8,
-            fontSize: 11,
-            fontFamily: 'var(--mono)',
-            color: 'var(--text2)',
-            marginBottom: 16
-          }}>
-            🔒 Access verified by "Admin" role on every request
-          </div>
-          <button
-            type="submit"
-            className="btn btn-primary btn-lg"
-            style={{ width: '100%' }}
-            disabled={isLoading || success}
-          >
-            {isLoading ? '⏳ Logging in...' : success ? '✓ Login Successful' : '🛡️ Admin Login'}
-          </button>
+          
+         <button
+  type="submit"
+  className="btn btn-lg"
+  style={{
+    width: '100%',
+    background: isLoading || success
+      ? '#a32d2d'
+      : 'linear-gradient(135deg, #E24B4A, #a32d2d)',
+    color: '#fff',
+    border: 'none',
+    fontWeight: 500,
+    letterSpacing: '0.5px',
+    transition: 'opacity 0.2s, transform 0.1s',
+    opacity: isLoading || success ? 0.8 : 1,
+    cursor: isLoading || success ? 'not-allowed' : 'pointer',
+  }}
+  onMouseEnter={e => {
+    if (!isLoading && !success)
+      (e.currentTarget as HTMLButtonElement).style.opacity = '0.88';
+  }}
+  onMouseLeave={e => {
+    (e.currentTarget as HTMLButtonElement).style.opacity = '1';
+  }}
+  disabled={isLoading || success}
+>
+  {isLoading ? ' Logging in...' : success ? 'Login Successful' : ' Admin Login'}
+</button>
         </form>
 
         
