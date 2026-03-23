@@ -6,7 +6,6 @@ import { LoginPage } from './pages/LoginPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { ZonesPage } from './pages/ZonesPage';
 import { DevicesPage } from './pages/DevicesPage';
-import { SensorsPage } from './pages/SensorsPage';
 import { UsersPage } from './pages/UsersPage';
 import { LogsPage } from './pages/LogsPage';
 import { MaintenancePage } from './pages/MaintenancePage';
@@ -91,14 +90,7 @@ const App: React.FC = () => {
                 </ProtectedRoute>
               }
             />
-            <Route
-              path="/sensors"
-              element={
-                <ProtectedRoute>
-                  <SensorsPage />
-                </ProtectedRoute>
-              }
-            />
+           
             <Route
               path="/users"
               element={

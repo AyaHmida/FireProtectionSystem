@@ -71,24 +71,49 @@ export const Sidebar: React.FC = () => {
 
   return (
     <div
-      className="sidebar"
+  className="sidebar"
+  style={{
+    height: '100vh',
+    display: 'flex',
+    flexDirection: 'column',
+    overflowY: 'auto',
+  }}
+>
+  {/* Logo */}
+  <div className="sidebar-logo">
+    <div
+      className="logo-badge"
       style={{
-        height: '100vh',
+        background: 'linear-gradient(135deg, #E24B4A, #a32d2d)',
+        borderRadius: 10,
+        width: 40,
+        height: 40,
         display: 'flex',
-        flexDirection: 'column',
-        overflowY: 'auto',
+        alignItems: 'center',
+        justifyContent: 'center',
       }}
     >
-      {/* Logo */}
-      <div className="sidebar-logo">
-        <div className="logo-badge">
-          <ShieldOutlinedIcon sx={{ fontSize: 24, color: '#ffffff' }} />
-        </div>
-        <div>
-          <div className="logo-title">SafeHome</div>
-          <div className="logo-sub">Admin Panel</div>
-        </div>
+      <img
+        src="/fireguard-icon.svg"
+        alt="FireGuard"
+        style={{ width: 28, height: 28 }}
+      />
+    </div>
+    <div>
+      <div
+        className="logo-title"
+        style={{ color: '#E24B4A', fontWeight: 600 }}
+      >
+        FireGuard
       </div>
+      <div
+        className="logo-sub"
+        style={{ color: '#a32d2d', fontSize: 11, opacity: 0.85 }}
+      >
+        Admin Panel
+      </div>
+    </div>
+  </div>
 
       {/* Navigation */}
       <div className="nav-wrap" style={{ flex: 1 }}>
@@ -130,18 +155,58 @@ export const Sidebar: React.FC = () => {
 
       {/* Footer */}
       <div className="sidebar-footer">
-        <div className="admin-card">
-          <div className="admin-av">
-            {user?.firstName?.charAt(0).toUpperCase() || 'A'}
-          </div>
-          <div>
-            <div className="admin-name">{user ? `${user.firstName} ${user.lastName}` : 'Admin'}</div>
-            <div className="admin-role">{user?.role?.toUpperCase() || 'USER'}</div>
-          </div>
-        </div>
-
-       <button className="logout-btn" onClick={logout} > <LogoutOutlinedIcon sx={{ fontSize: 18, color: '#666' }} /> Logout </button>
+  <div
+    className="admin-card"
+    style={{
+      background: 'linear-gradient(135deg, rgba(226,75,74,0.08), rgba(163,45,45,0.12))',
+      border: '1px solid rgba(226,75,74,0.25)',
+      borderRadius: 10,
+    }}
+  >
+    <div
+      className="admin-av"
+      style={{
+        background: 'linear-gradient(135deg, #E24B4A, #a32d2d)',
+        color: '#fff',
+        fontWeight: 600,
+        borderRadius: 8,
+      }}
+    >
+      {user?.firstName?.charAt(0).toUpperCase() || 'A'}
+    </div>
+    <div>
+      <div
+        className="admin-name"
+        style={{ fontWeight: 500, color: '#E24B4A' }}
+      >
+        {user ? `${user.firstName} ${user.lastName}` : 'Admin'}
       </div>
+      <div
+        className="admin-role"
+        style={{ fontSize: 10, color: '#a32d2d', opacity: 0.85, letterSpacing: '0.8px' }}
+      >
+        {user?.role?.toUpperCase() || 'USER'}
+      </div>
+    </div>
+  </div>
+
+  <button
+    className="logout-btn"
+    onClick={logout}
+    style={{
+      background: 'rgba(226,75,74,0.07)',
+      border: '1px solid rgba(226,75,74,0.2)',
+      borderRadius: 8,
+      color: '#E24B4A',
+      transition: 'background 0.2s',
+    }}
+    onMouseEnter={e => (e.currentTarget.style.background = 'rgba(226,75,74,0.15)')}
+    onMouseLeave={e => (e.currentTarget.style.background = 'rgba(226,75,74,0.07)')}
+  >
+    <LogoutOutlinedIcon sx={{ fontSize: 18, color: '#E24B4A' }} />
+    Logout
+  </button>
+</div>
     </div>
   );
 };

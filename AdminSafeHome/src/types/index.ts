@@ -66,21 +66,9 @@ export interface Sensor {
   zoneName?: string;
 }
 
-export interface CreateSensorDto {
-  macAddress: string;
-  label: string;
-  type: string;
-  thresholdValue: number;
-  zoneId: number;
-}
 
-export interface UpdateSensorDto {
-  label?: string;
-  type?: string;
-  thresholdValue?: number;
-  zoneId?: number;
-  status?: string;
-}
+
+
 
 // Log types
 export interface SystemLog {
