@@ -97,6 +97,11 @@ namespace IoTFire.Backend.Api.Repositories.Implementation
             => await _context.Users
                 .Where(u => u.IsActive && !u.IsSuspended && !u.IsDeleted)
                 .ToListAsync();
+        public async Task<User?> GetByResetTokenAsync(string token)
+        {
+            return await _context.Users
+                .FirstOrDefaultAsync(u => u.ResetToken == token && !u.IsDeleted);
+        }
     }
 }
 

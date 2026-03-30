@@ -9,5 +9,7 @@ namespace IoTFire.Backend.Api.Services.Interfaces
         Task<AuthResponseDto> LoginAsync(LoginDto dto);
         Task<(bool Success, string? Error)> ChangePasswordAsync(
             int userId, ChangePasswordDto dto);
+        Task<(bool Success, string Message)> ForgotPasswordAsync(string email);
+        Task<(bool Success, string Message)> ResetPasswordAsync(ResetPasswordDto dto);
     }
 }
