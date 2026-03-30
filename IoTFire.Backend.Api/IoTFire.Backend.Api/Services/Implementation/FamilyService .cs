@@ -37,7 +37,7 @@ namespace IoTFire.Backend.Api.Services.Implementation
                          + Convert.ToBase64String(Guid.NewGuid().ToByteArray());
             var token = rawToken.Replace("+", "-").Replace("/", "_").Replace("=", "");
 
-            var frontendUrl = _config["App:FrontendUrl"] ?? "http://localhost:5173/";
+            var frontendUrl = _config["App:FrontendUrl"] ?? "http://localhost:8081/";
             var invitationLink = $"{frontendUrl}/accept-invitation?token={token}";
             var emailSubject = $"Invitation to join the system {occupant.FirstName} {occupant.LastName}";
             var emailBody = BuildInvitationEmail(occupant, invitationLink);

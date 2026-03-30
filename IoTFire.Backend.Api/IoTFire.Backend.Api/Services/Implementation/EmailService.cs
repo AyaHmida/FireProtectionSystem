@@ -67,7 +67,35 @@ namespace IoTFire.Backend.Api.Services.Implementation
             }
         }
 
+        public async Task SendPasswordResetEmailAsync(string toEmail, string firstName, string token)
+        {
+            // _config existe déjà dans EmailService ✅
+            var baseUrl = _config["App:FrontendUrl"] ?? "http://localhost:8081/";
+            var resetLink = $"{baseUrl}/reset-password?token={token}";
 
+            var htmlBody = $@"
+        <div style='font-family:Arial,sans-serif;max-width:600px;margin:auto;padding:24px;'>
+            <h2 style='color:#E74C3C;'>🔥 FireGuard — Réinitialisation du mot de passe</h2>
+            <p>Bonjour <strong>{firstName}</strong>,</p>
+            <p>Vous avez demandé à réinitialiser votre mot de passe.</p>
+            <p>Cliquez sur le bouton ci-dessous depuis votre téléphone :</p>
+            <a href='{resetLink}'
+               style='display:inline-block;padding:12px 24px;background:#E74C3C;
+                      color:white;text-decoration:none;border-radius:6px;
+                      font-weight:bold;margin:16px 0;'>
+               Réinitialiser mon mot de passe
+            </a>
+            <p style='color:#888;font-size:12px;'>
+                Ce lien est valable <strong>1 heure</strong>.<br/>
+                Si vous n'avez pas fait cette demande, ignorez cet email.
+            </p>
+        </div>";
+
+            await SendEmailAsync(
+                toEmail,
+                "🔐 FireGuard – Réinitialisation de votre mot de passe",
+                htmlBody);
+        }
         private static string StripHtml(string html)
         {
             if (string.IsNullOrWhiteSpace(html)) return "";

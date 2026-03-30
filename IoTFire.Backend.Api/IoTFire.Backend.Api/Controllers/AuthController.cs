@@ -74,6 +74,45 @@ namespace IoTFire.Backend.Api.Controllers
 
             return Ok(new { message = "Mot de passe modifié avec succès." });
         }
+       
+        [HttpPost("forgot-password")]
+        public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordDto dto)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
 
+            try
+            {
+                var (success, message) = await _authService.ForgotPasswordAsync(dto.Email);
+                // Toujours 200 pour ne pas révéler si l'email existe
+                return Ok(new { message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[ForgotPassword] Erreur inattendue.");
+                return StatusCode(500, new { message = "Une erreur est survenue. Veuillez réessayer." });
+            }
+        }
+
+        [HttpPost("reset-password")]
+        public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordDto dto)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            try
+            {
+                var (success, message) = await _authService.ResetPasswordAsync(dto);
+
+                return success
+                    ? Ok(new { message })
+                    : BadRequest(new { message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[ResetPassword] Erreur inattendue.");
+                return StatusCode(500, new { message = "Une erreur est survenue. Veuillez réessayer." });
+            }
+        }
     }
 }
