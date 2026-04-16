@@ -37,7 +37,7 @@ namespace IoTFire.Backend.Api.Services.Implementation
                          + Convert.ToBase64String(Guid.NewGuid().ToByteArray());
             var token = rawToken.Replace("+", "-").Replace("/", "_").Replace("=", "");
 
-            var frontendUrl = _config["App:FrontendUrl"] ?? "http://localhost:8081/";
+            var frontendUrl = _config["App:FrontendUrl"] ?? "http://192.168.1.107:8081/";
             var invitationLink = $"{frontendUrl}/accept-invitation?token={token}";
             var emailSubject = $"Invitation to join the system {occupant.FirstName} {occupant.LastName}";
             var emailBody = BuildInvitationEmail(occupant, invitationLink);
@@ -110,7 +110,46 @@ namespace IoTFire.Backend.Api.Services.Implementation
             return (true, "Invitation sent successfully. The link expires in 48 hours.");
         }
 
-       
+        public async Task<(bool Success, string Message)> AcceptInvitationAsync(
+         AcceptInvitationDto dto)
+        {
+            var pendingUser = await _context.Users
+                .FirstOrDefaultAsync(u =>
+                    u.ResetToken == dto.Token &&
+                    !u.IsActive &&
+                    u.TokenExpiration > DateTime.UtcNow);
+
+            if (pendingUser == null)
+                return (false, "Invalid or expired link. Request a new invitation.");
+
+            pendingUser.LastName = dto.LastName;
+            pendingUser.FirstName = dto.FirstName;
+            pendingUser.PhoneNumber = dto.PhoneNumber ?? "";
+            pendingUser.PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.PasswordHash);
+
+            pendingUser.IsActive = true;
+            pendingUser.ResetToken = null;
+            pendingUser.TokenExpiration = null;
+            pendingUser.UpdatedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+
+            return (true, "Account successfully created. You can now log in.");
+        }
+        public async Task<(bool Valid, string Email)> ValidateInvitationTokenAsync(string token)
+        {
+            var pendingUser = await _context.Users
+                .FirstOrDefaultAsync(u =>
+                    u.ResetToken == token &&
+                    !u.IsActive &&
+                    u.TokenExpiration > DateTime.UtcNow);
+
+            if (pendingUser == null)
+                return (false, null);
+
+            return (true, pendingUser.Email);
+        }
+
         public async Task<FamilyListResponseDto> GetFamilyMembersAsync(int occupantId)
         {
             var activeMembers = await _context.Users
@@ -174,48 +213,10 @@ namespace IoTFire.Backend.Api.Services.Implementation
         }
 
         
-        public async Task<(bool Valid, string Email)> ValidateInvitationTokenAsync(string token)
-        {
-            var pendingUser = await _context.Users
-                .FirstOrDefaultAsync(u =>
-                    u.ResetToken == token &&
-                    !u.IsActive &&
-                    u.TokenExpiration > DateTime.UtcNow);
-
-            if (pendingUser == null)
-                return (false, null);
-
-            return (true, pendingUser.Email);
-        }
 
        
         
-        public async Task<(bool Success, string Message)> AcceptInvitationAsync(
-            AcceptInvitationDto dto)
-        {
-            var pendingUser = await _context.Users
-                .FirstOrDefaultAsync(u =>
-                    u.ResetToken == dto.Token &&
-                    !u.IsActive &&
-                    u.TokenExpiration > DateTime.UtcNow);
-
-            if (pendingUser == null)
-                return (false, "Invalid or expired link. Request a new invitation.");
-
-            pendingUser.LastName = dto.LastName;
-            pendingUser.FirstName = dto.FirstName;
-            pendingUser.PhoneNumber = dto.PhoneNumber ?? "";
-            pendingUser.PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.PasswordHash);
-
-            pendingUser.IsActive = true;
-            pendingUser.ResetToken = null;
-            pendingUser.TokenExpiration = null;
-            pendingUser.UpdatedAt = DateTime.UtcNow;
-
-            await _context.SaveChangesAsync();
-
-            return (true, "Account successfully created. You can now log in.");
-        }
+     
 
 
         private string BuildInvitationEmail(User occupant, string link)

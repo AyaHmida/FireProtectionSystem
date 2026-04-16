@@ -79,15 +79,16 @@ builder.Services.AddOpenApi();
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowReactApp", policy =>
-        policy.WithOrigins(
-                            "http://localhost:5173",        // React web
-                                            "http://localhost:8081",         // ✅ Expo web
+      policy.WithOrigins(
+          "http://localhost:5173",        // React web
+          "http://localhost:8081",        // Expo web
+          "http://192.168.1.107:8081" ,     // Mobile réel sur Wi-Fi actuel
+                    "http://localhost:7182"       // ← ajoute ça
 
-
-"http://192.168.1.107:8081")
-              .AllowAnyHeader()
-              .AllowAnyMethod()
-              .AllowCredentials());
+      )
+      .AllowAnyHeader()
+      .AllowAnyMethod()
+      .AllowCredentials());
 });
 var app = builder.Build();
 
