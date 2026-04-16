@@ -70,7 +70,7 @@ namespace IoTFire.Backend.Api.Services.Implementation
         public async Task SendPasswordResetEmailAsync(string toEmail, string firstName, string token)
         {
             // _config existe déjà dans EmailService ✅
-            var baseUrl = _config["App:FrontendUrl"] ?? "http://localhost:8081/";
+            var baseUrl = _config["App:FrontendUrl"] ?? "http://192.168.1.107:8081/";
             var resetLink = $"{baseUrl}/reset-password?token={token}";
 
             var htmlBody = $@"
