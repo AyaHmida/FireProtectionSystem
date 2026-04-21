@@ -29,14 +29,12 @@ namespace IoTFire.Backend.Api.Repositories.Implementation
 
             return await query.OrderByDescending(d => d.CreatedAt).ToListAsync();
         }
-        public async Task<Device?> GetByIdAsync(int id)
-        {
-            return await _context.Devices
-                .Include(d => d.Zone)
-                    .ThenInclude(z => z!.User)
-                .Include(d => d.Sensors)
-                .FirstOrDefaultAsync(d => d.Id == id);
-        }
+        public async Task<Device?> GetByIdAsync(int id) =>
+       await _context.Devices
+                     .Include(d => d.Zone)
+                     .Include(d => d.Occupant)
+                     .Include(d => d.Sensors)
+                     .FirstOrDefaultAsync(d => d.Id == id);
 
         public async Task<Device?> GetByDeviceIdStringAsync(string deviceId)
         {

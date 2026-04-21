@@ -18,12 +18,7 @@ namespace IoTFire.Backend.Api.Controllers
             _sensorService = sensorService;
         }
 
-        [HttpGet]
-        public async Task<IActionResult> GetAll([FromQuery] SensorStatus? status)
-        {
-            var result = await _sensorService.GetAllAsync(status);
-            return Ok(result);
-        }
+        
 
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(int id)
@@ -35,39 +30,15 @@ namespace IoTFire.Backend.Api.Controllers
 
             return Ok(sensor);
         }
-
- 
-
-      
-        [Authorize(Roles = "Occupant,Admin")]
-        [HttpPost("thresholds")]
-        public async Task<IActionResult> SetThresholds([FromBody] UpdateThresholdsDto dto)
+        [HttpPost("register")]
+        public async Task<IActionResult> RegisterSensor([FromBody] SensorRegisterDto dto)
         {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
-
-            if (!dto.ZoneId.HasValue && !dto.Type.HasValue)
-                return BadRequest(new { message = "ZoneId ou Type requis." });
-
-            if (dto.ZoneId.HasValue && dto.Type.HasValue)
-                return BadRequest(new { message = "Choisir soit ZoneId soit Type, pas les deux." });
-
-            int count;
-
-            if (dto.ZoneId.HasValue)
-            {
-                count = await _sensorService.SetThresholdsByZoneAsync(
-                    dto.ZoneId.Value,
-                    dto.Threshold);
-            }
-            else
-            {
-                count = await _sensorService.SetThresholdsByTypeAsync(
-                    dto.Type!.Value,
-                    dto.Threshold);
-            }
-
-            return Ok(new { updated = count });
+            var result = await _sensorService.RegisterSensorAsync(dto);
+            if (result.Dto == null) return BadRequest(result.Error);
+            return Ok(result.Dto);
         }
+
+
+
     }
 }

@@ -3,7 +3,7 @@
     public enum SensorType
     {
         TEMPERATURE,
-        GAS,
-        FLAME
+        HUMIDITY,
+        GAS
     }
 }

@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace IoTFire.Backend.Api.Models.DTOs.ManagementSensor
 {
     public class SensorResponseDto
@@ -27,4 +29,5 @@ namespace IoTFire.Backend.Api.Models.DTOs.ManagementSensor
         public string Severity { get; set; } = string.Empty; // NORMAL/WARNING/CRITICAL
         public DateTime Timestamp { get; set; }
     }
+
 }

@@ -9,6 +9,7 @@ namespace IoTFire.Backend.Api.Services.Interfaces
         Task<(DeviceResponseDto? Dto, string? Error)> CreateAsync(CreateDeviceDto dto);
         Task<(DeviceResponseDto? Dto, string? Error)> UpdateAsync(int id, CreateDeviceDto dto);
         Task<(bool Success, string? Error)> DeleteAsync(int id);
+        Task<(DeviceResponseDto? Dto, string? Error)> MarkOnlineAsync(DeviceRegisterDto dto);
         Task<(DeviceResponseDto? Dto, string? Error)> AssignToZoneAsync(int id, AssignDeviceToZoneDto dto);
         Task<(DeviceResponseDto? Dto, string? Error)> UnassignFromZoneAsync(int id);
     }

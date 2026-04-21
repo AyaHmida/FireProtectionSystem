@@ -79,7 +79,16 @@ namespace IoTFire.Backend.Api.Controllers
             return NoContent();
         }
 
-       
+        [HttpPost("register")]
+        [AllowAnonymous]
+        public async Task<IActionResult> RegisterDevice([FromBody] DeviceRegisterDto dto)
+        {
+            var result = await _deviceService.MarkOnlineAsync(dto);
+            if (result.Dto == null) return BadRequest(result.Error);
+            return Ok(result.Dto);
+        }
+
+
         [HttpPut("{id:int}/assign-zone")]
         public async Task<IActionResult> AssignToZone(int id, [FromBody] AssignDeviceToZoneDto dto)
         {
