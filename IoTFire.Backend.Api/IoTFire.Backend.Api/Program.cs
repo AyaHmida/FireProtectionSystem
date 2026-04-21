@@ -30,8 +30,6 @@ builder.Services.AddSingleton<JwtHelper>();
 builder.Services.AddScoped<IUserManagementService, UserManagementService>();
 builder.Services.AddScoped<IFamilyService, FamilyService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
-builder.Services.AddScoped<IDeviceService, DeviceService>();
-builder.Services.AddScoped<IDeviceRepository, DeviceRepository>();
 
 // Sensors
 builder.Services.AddScoped<ISensorRepository, SensorRepository>();
@@ -40,6 +38,25 @@ builder.Services.AddScoped<ISensorService, SensorService>();
 // Zones
 builder.Services.AddScoped<IZoneRepository, ZoneRepository>();
 builder.Services.AddScoped<IZoneService, ZoneService>();
+
+// Devices
+builder.Services.AddScoped<IDeviceRepository, DeviceRepository>();
+builder.Services.AddScoped<IDeviceService, DeviceService>();
+
+// Measurements
+builder.Services.AddScoped<IMeasurementRepository, MeasurementRepository>();
+builder.Services.AddScoped<IMeasurementService, MeasurementService>();
+
+// SensorConfiguration
+builder.Services.AddScoped<ISensorConfigurationRepository, SensorConfigurationRepository>();
+builder.Services.AddScoped<ISensorConfigurationService, SensorConfigurationService>();
+
+// Mqtt service
+builder.Services.AddSingleton<MqttService>();
+// Alert service
+builder.Services.AddScoped<IAlertService, AlertService>();
+// Alert repository
+builder.Services.AddScoped<IAlertRepository, AlertRepository>();
 
 //configuration de jwt 
 var jwtSettings = builder.Configuration.GetSection("Jwt");
@@ -76,21 +93,22 @@ builder.Services.AddControllers()
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 //cros pour react frontEnd
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy("AllowReactApp", policy =>
-      policy.WithOrigins(
-          "http://localhost:5173",        // React web
-          "http://localhost:8081",        // Expo web
-          "http://192.168.1.107:8081" ,     // Mobile réel sur Wi-Fi actuel
-                    "http://localhost:7182"       // ← ajoute ça
-
-      )
-      .AllowAnyHeader()
-      .AllowAnyMethod()
-      .AllowCredentials());
-});
+//builder.Services.AddCors(options =>
+//{
+//    options.AddPolicy("AllowReactApp", policy =>
+//        policy.WithOrigins(
+//                "http://localhost:3000",   // React dev server
+//                "http://localhost:5173"    // Vite dev server
+//              )
+//              .AllowAnyHeader()
+//              .AllowAnyMethod()
+//              .AllowCredentials());
+//});
 var app = builder.Build();
+
+// Start MQTT when app starts
+var mqtt = app.Services.GetRequiredService<MqttService>();
+_ = mqtt.StartAsync();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
@@ -98,11 +116,13 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
-//app.UseHttpsRedirection();
-app.UseCors("AllowReactApp");
+app.UseHttpsRedirection();
+//app.UseCors("AllowReactApp");
 app.UseAuthentication();       
 app.UseAuthorization();
 
 app.MapControllers();
+
+app.Lifetime.ApplicationStopping.Register(() => mqtt.StopAsync().Wait());
 
 app.Run();

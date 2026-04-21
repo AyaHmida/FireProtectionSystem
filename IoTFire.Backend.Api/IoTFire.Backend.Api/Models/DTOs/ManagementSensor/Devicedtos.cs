@@ -20,9 +20,7 @@
         public int OccupantUserId { get; set; }
     }
 
-    // ──────────────────────────────────────────────
-    //  Association device → zone  (US-A3)
-    // ──────────────────────────────────────────────
+   
     public class AssignDeviceToZoneDto
     {
         [Required(ErrorMessage = "L'identifiant de la zone est obligatoire.")]
@@ -30,9 +28,7 @@
         public int ZoneId { get; set; }
     }
 
-    // ──────────────────────────────────────────────
-    //  Réponse client
-    // ──────────────────────────────────────────────
+
     public class DeviceResponseDto
     {
         public int Id { get; set; }
@@ -56,4 +52,5 @@
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
     }
+
 }

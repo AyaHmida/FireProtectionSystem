@@ -93,7 +93,24 @@ namespace IoTFire.Backend.Api.Services.Implementation
                 : (false, "Échec de la suppression.");
         }
 
-      
+        public async Task<(DeviceResponseDto? Dto, string? Error)> MarkOnlineAsync(DeviceRegisterDto dto)
+        {
+            var device = await _deviceRepository.GetByDeviceIdStringAsync(dto.DeviceId);
+            if (device == null)
+                return (null, $"Device '{dto.DeviceId}' introuvable.");
+
+            device.IsOnline = dto.IsOnline;
+            device.UpdatedAt = DateTime.UtcNow;
+
+            if (!string.IsNullOrEmpty(dto.MacAddress))
+                device.Description = $"MAC: {dto.MacAddress}";
+
+            var updated = await _deviceRepository.UpdateAsync(device);
+            return updated == null
+                ? (null, "Échec de mise à jour.")
+                : (MapToDto(updated), null);
+        }
+
         public async Task<(DeviceResponseDto? Dto, string? Error)> AssignToZoneAsync(
             int id, AssignDeviceToZoneDto dto)
         {

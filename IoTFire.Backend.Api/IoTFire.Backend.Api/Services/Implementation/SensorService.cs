@@ -1,34 +1,31 @@
-using System.Linq;
 using IoTFire.Backend.Api.Helpers;
 using IoTFire.Backend.Api.Models.DTOs.ManagementSensor;
 using IoTFire.Backend.Api.Models.Entities;
 using IoTFire.Backend.Api.Models.Entities.Enums;
+using IoTFire.Backend.Api.Repositories.Implementation;
 using IoTFire.Backend.Api.Repositories.Interfaces;
 using IoTFire.Backend.Api.Services.Interfaces;
+using System.Linq;
 
 namespace IoTFire.Backend.Api.Services.Implementation
 {
     public class SensorService : ISensorService
     {
         private readonly ISensorRepository _sensorRepository;
+        private readonly IDeviceRepository _deviceRepository;
+        private readonly IZoneRepository _zoneRepository;
 
-        public SensorService(ISensorRepository sensorRepository)
+        public SensorService(ISensorRepository sensorRepository,IDeviceRepository deviceRepository,IZoneRepository zoneRepository)
         {
             _sensorRepository = sensorRepository;
+            _deviceRepository = deviceRepository;
+            _zoneRepository = zoneRepository;
         }
 
-        public async Task<int> SetThresholdsByZoneAsync(int zoneId, float threshold)
-        {
-            return await _sensorRepository.UpdateThresholdsByZoneAsync(zoneId, threshold);
-        }
 
-        public async Task<int> SetThresholdsByTypeAsync(SensorType type, float threshold)
-        {
-            return await _sensorRepository.UpdateThresholdsByTypeAsync(type, threshold);
-        }
 
         public async Task<IEnumerable<SensorResponseDto>> GetAllAsync(
-            SensorStatus? status = null)
+    SensorStatus? status = null)
         {
             var sensors = await _sensorRepository.GetAllAsync(status);
             return sensors.Select(MapToDto);
@@ -40,7 +37,31 @@ namespace IoTFire.Backend.Api.Services.Implementation
             return sensor == null ? null : MapToDto(sensor);
         }
 
-       
+
+        public async Task<(SensorResponseDto? Dto, string? Error)> RegisterSensorAsync(SensorRegisterDto dto)
+        {
+            var device = await _deviceRepository.GetByIdAsync(dto.DeviceId);
+            if (device == null)
+                return (null, $"Device introuvable avec l'id {dto.DeviceId}.");
+
+            var zone = await _zoneRepository.GetByIdAsync(dto.ZoneId);
+            if (zone == null)
+                return (null, $"Zone introuvable avec l'id {dto.ZoneId}.");
+
+            var sensor = new Sensor
+            {
+                Label = dto.Label,
+                Type = Enum.Parse<SensorType>(dto.Type, true),
+                Status = SensorStatus.ONLINE,
+                DeviceId = dto.DeviceId,
+                ZoneId = dto.ZoneId,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+
+            var created = await _sensorRepository.CreateAsync(sensor);
+            return (MapToDto(created), null);
+        }
 
 
         private static SensorResponseDto MapToDto(Sensor s) => new()

@@ -14,9 +14,12 @@ namespace IoTFire.Backend.Api.Controllers
     {
         private readonly IZoneService _zoneService;
 
-        public ZoneController(IZoneService zoneService)
+        private readonly IMeasurementService _service;
+
+        public ZoneController(IZoneService zoneService, IMeasurementService service)
         {
             _zoneService = zoneService;
+            _service = service;
         }
 
        
@@ -45,6 +48,12 @@ namespace IoTFire.Backend.Api.Controllers
                 return BadRequest(new { message = error });
 
             return Ok(zones);
+        }
+        [HttpGet("zone/{zoneId}/realtime")]
+        public async Task<IActionResult> GetZoneRealtime(int zoneId)
+        {
+            var data = await _service.GetZoneRealtimeAsync(zoneId);
+            return Ok(data);
         }
 
 

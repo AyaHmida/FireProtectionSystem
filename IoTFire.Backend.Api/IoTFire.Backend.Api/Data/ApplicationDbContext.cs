@@ -11,6 +11,9 @@ namespace IoTFire.Backend.Api.Data
         public DbSet<Zone> Zones { get; set; }
         public DbSet<Sensor> Sensors { get; set; }
         public DbSet<Device> Devices { get; set; }
+        public DbSet<Measurement> Measurements { get; set; }
+        public DbSet<SensorConfiguration> SensorConfigurations { get; set; }
+        public DbSet<Alert> Alerts { get; set; }
 
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -104,6 +107,14 @@ namespace IoTFire.Backend.Api.Data
 
                 entity.Property(s => s.CreatedAt).HasDefaultValueSql("NOW()");
                 entity.Property(s => s.UpdatedAt).HasDefaultValueSql("NOW()");
+            });
+
+            modelBuilder.Entity<Alert>(entity =>
+            {
+                entity.Property(a => a.DeviceId).HasMaxLength(100).IsRequired(false);
+                entity.Property(a => a.Type).HasMaxLength(50).IsRequired();
+                entity.Property(a => a.Message).HasMaxLength(500).IsRequired(false);
+                entity.Property(a => a.CreatedAt).HasDefaultValueSql("NOW()");
             });
         }
     }

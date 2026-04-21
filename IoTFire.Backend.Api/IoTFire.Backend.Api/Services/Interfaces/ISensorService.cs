@@ -9,7 +9,7 @@ namespace IoTFire.Backend.Api.Services.Interfaces
         Task<IEnumerable<SensorResponseDto>> GetAllAsync(SensorStatus? status = null);
         Task<SensorResponseDto?> GetByIdAsync(int id);
 
-        Task<int> SetThresholdsByZoneAsync(int zoneId, float threshold);
-        Task<int> SetThresholdsByTypeAsync(SensorType type, float threshold);
+        Task<(SensorResponseDto? Dto, string? Error)> RegisterSensorAsync(SensorRegisterDto dto);
+
     }
 }
