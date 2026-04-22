@@ -49,7 +49,7 @@ namespace IoTFire.Backend.Api.Controllers
 
             return Ok(zones);
         }
-        [HttpGet("zone/{zoneId}/realtime")]
+        [HttpGet("{zoneId}/realtime")]
         public async Task<IActionResult> GetZoneRealtime(int zoneId)
         {
             var data = await _service.GetZoneRealtimeAsync(zoneId);

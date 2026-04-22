@@ -10,85 +10,111 @@ namespace IoTFire.Backend.Api.Services.Implementation
     public class AlertService : IAlertService
     {
         private readonly ISensorConfigurationService _configService;
-        private readonly MqttService _mqtt;
+        private readonly IAlertRepository _alertRepository;
+        private readonly ISensorRepository _sensorRepository;
+        private readonly IDeviceRepository _deviceRepository;
+        private readonly IAlertNotifier _notifier;
+        private readonly MqttService _mqttService;          // ✅ AJOUT
         private readonly ILogger<AlertService> _logger;
 
-        private readonly IAlertRepository _alertRepository;
-        private readonly IoTFire.Backend.Api.Repositories.Interfaces.ISensorRepository _sensorRepository;
-        private readonly IoTFire.Backend.Api.Repositories.Interfaces.IDeviceRepository _deviceRepository;
-
-        public AlertService(ISensorConfigurationService configService, MqttService mqtt, ILogger<AlertService> logger, IAlertRepository alertRepository,
-            IoTFire.Backend.Api.Repositories.Interfaces.ISensorRepository sensorRepository,
-            IoTFire.Backend.Api.Repositories.Interfaces.IDeviceRepository deviceRepository)
+        public AlertService(
+            ISensorConfigurationService configService,
+            IAlertRepository alertRepository,
+            ISensorRepository sensorRepository,
+            IDeviceRepository deviceRepository,
+            IAlertNotifier notifier,
+            MqttService mqttService,                        // ✅ AJOUT
+            ILogger<AlertService> logger)
         {
             _configService = configService;
-            _mqtt = mqtt;
-            _logger = logger;
             _alertRepository = alertRepository;
             _sensorRepository = sensorRepository;
             _deviceRepository = deviceRepository;
+            _notifier = notifier;
+            _mqttService = mqttService;                  // ✅ AJOUT
+            _logger = logger;
         }
 
         public async Task CheckAndTriggerAlertAsync(MeasurementDto measurement)
         {
-            _logger.LogInformation("Checking measurement for sensor {SensorId} value {Value}", measurement.SensorId, measurement.Value);
+            _logger.LogInformation("Checking measurement for sensor {SensorId} value {Value}",
+                measurement.SensorId, measurement.Value);
 
             var config = await _configService.GetBySensorIdAsync(measurement.SensorId);
+            var type = (measurement.TypeMeasure ?? string.Empty).ToUpper();
+
+            float pre, alert, critical;
+
             if (config == null)
             {
-                _logger.LogDebug("No configuration found for sensor {SensorId}", measurement.SensorId);
-                return;
-            }
-
-            float pre = config.PreAlertThreshold;
-            float alert = config.AlertThreshold;
-            float critical = config.CriticalThreshold;
-
-            string level = "NORMAL";
-            if (measurement.Value >= pre) level = "PRE_ALERT";
-            if (measurement.Value >= alert) level = "ALERT";
-            if (measurement.Value >= critical) level = "CRITICAL";
-
-            string type = measurement.TypeMeasure.ToUpper();
-            string message = "";
-
-            if (type == SensorType.GAS.ToString())
-            {
-                // gas sensor -> immediate alert semantics
-                if (measurement.Value >= alert)
+                _logger.LogWarning("No config for {SensorId}, using fallback thresholds", measurement.SensorId);
+                (pre, alert, critical) = type switch
                 {
-                    level = measurement.Value >= critical ? "CRITICAL" : "ALERT";
-                    message = measurement.Value >= critical ? "Fuite de gaz détectée" : "Fuite de gaz détectée";
-                }
-                else
-                {
-                    level = "NORMAL";
-                }
-            }
-            else if (type == SensorType.TEMPERATURE.ToString())
-            {
-                if (level == "PRE_ALERT") message = "Température en hausse";
-                if (level == "ALERT") message = "Température élevée";
-                if (level == "CRITICAL") message = "Température critique";
+                    "TEMPERATURE" => (40f, 50f, 60f),
+                    "GAS" => (0f, 1500f, 2500f),
+                    "SMOKE" => (0f, 0f, 1f),   // toute valeur > 0 = CRITICAL
+                    _ => (0f, 0f, 0f)
+                };
             }
             else
             {
-                // default messages
-                if (level == "PRE_ALERT") message = "Valeur au-dessus du seuil pré-alerte";
-                if (level == "ALERT") message = "Valeur au-dessus du seuil d'alerte";
-                if (level == "CRITICAL") message = "Valeur critique";
+                pre = config.PreAlertThreshold;
+                alert = config.AlertThreshold;
+                critical = config.CriticalThreshold;
             }
 
-            // Fill DeviceId by looking up sensor -> device relationship
+            string level = "NORMAL";
+            string message = string.Empty;
+
+            switch (type)
+            {
+                case "SMOKE":
+                    // ✅ Détection binaire : toute valeur > 0 = CRITICAL immédiat
+                    if (measurement.Value > 0)
+                    {
+                        level = "CRITICAL";
+                        message = "Fumée détectée";
+                    }
+                    break;
+
+                case "GAS":
+                    if (measurement.Value >= critical) { level = "CRITICAL"; message = "Fuite de gaz critique"; }
+                    else if (measurement.Value >= alert) { level = "ALERT"; message = "Fuite de gaz détectée"; }
+                    break;
+
+                case "TEMPERATURE":
+                    if (measurement.Value >= critical) { level = "CRITICAL"; message = "Température critique"; }
+                    else if (measurement.Value >= alert) { level = "ALERT"; message = "Température élevée"; }
+                    else if (measurement.Value >= pre) { level = "PRE_ALERT"; message = "Température en hausse"; }
+                    break;
+
+                default:
+                    if (measurement.Value >= critical) { level = "CRITICAL"; message = "Valeur critique"; }
+                    else if (measurement.Value >= alert) { level = "ALERT"; message = "Valeur au-dessus du seuil d'alerte"; }
+                    else if (measurement.Value >= pre) { level = "PRE_ALERT"; message = "Valeur au-dessus du seuil pré-alerte"; }
+                    break;
+            }
+
+            if (level == "NORMAL")
+            {
+                _logger.LogDebug("Sensor {SensorId} value {Value} is NORMAL", measurement.SensorId, measurement.Value);
+                return;
+            }
+
+            // Récupérer DeviceId + ZoneId
             string deviceIdString = string.Empty;
+            int? zoneId = null;
             try
             {
                 var sensor = await _sensorRepository.GetByIdAsync(measurement.SensorId);
-                if (sensor != null && sensor.DeviceId.HasValue)
+                if (sensor != null)
                 {
-                    var device = await _deviceRepository.GetByIdAsync(sensor.DeviceId.Value);
-                    if (device != null)
-                        deviceIdString = device.DeviceId;
+                    zoneId = sensor.ZoneId;
+                    if (sensor.DeviceId.HasValue)
+                    {
+                        var device = await _deviceRepository.GetByIdAsync(sensor.DeviceId.Value);
+                        if (device != null) deviceIdString = device.DeviceId;
+                    }
                 }
             }
             catch (Exception ex)
@@ -96,44 +122,88 @@ namespace IoTFire.Backend.Api.Services.Implementation
                 _logger.LogWarning(ex, "Failed to lookup device for sensor {SensorId}", measurement.SensorId);
             }
 
-            var alertDto = new AlertDto
+            await CreateAlertAsync(new AlertDto
             {
                 DeviceId = deviceIdString,
                 SensorId = measurement.SensorId,
-                Type = type == "GAS" ? "GAS" : (type == "TEMPERATURE" ? "TEMPERATURE" : type),
+                ZoneId = zoneId,
+                Type = type,
                 Value = measurement.Value,
                 Level = level,
                 Message = message,
-                Timestamp = DateTime.UtcNow
-            };
+                CreatedAt = DateTime.UtcNow
+            });
+        }
 
-            // log
-            _logger.LogInformation("Alert level {Level} for sensor {SensorId}: {Message}", level, measurement.SensorId, message);
-
-            // persist alert in DB
-            var alertEntity = new Models.Entities.Alert
-            {
-                DeviceId = alertDto.DeviceId,
-                SensorId = alertDto.SensorId,
-                Type = alertDto.Type,
-                Value = alertDto.Value,
-                Level = alertDto.Level,
-                Message = alertDto.Message,
-                CreatedAt = alertDto.Timestamp
-            };
+        public async Task CreateAlertAsync(AlertDto dto)
+        {
+            if (dto == null) throw new ArgumentNullException(nameof(dto));
 
             try
             {
-                await _alertRepository.CreateAsync(alertEntity);
+                // ✅ Anti-spam sauf pour SMOKE (chaque détection compte)
+                bool duplicate = false;
+                if (dto.Type?.ToUpper() != "SMOKE")
+                {
+                    var cutoff = DateTime.UtcNow.AddSeconds(-60);
+                    var recentAlerts = await _alertRepository.GetRecentBySensorAsync(dto.SensorId, cutoff);
+                    duplicate = recentAlerts.Any(a => a.Level == dto.Level);
+                }
+
+                if (duplicate)
+                {
+                    _logger.LogInformation("Duplicate suppressed for sensor {SensorId} level {Level}",
+                        dto.SensorId, dto.Level);
+                    return;
+                }
+
+                // 💾 Persister en BDD
+                var created = await _alertRepository.CreateAsync(new Models.Entities.Alert
+                {
+                    DeviceId = dto.DeviceId,
+                    SensorId = dto.SensorId,
+                    Type = dto.Type,
+                    Value = dto.Value,
+                    Level = dto.Level,
+                    Message = dto.Message,
+                    CreatedAt = dto.CreatedAt
+                });
+
+                dto.Id = created.Id;
+                dto.CreatedAt = created.CreatedAt;
+                dto.IsRead = false;
+
+                // Enrichir ZoneId si manquant
+                if (!dto.ZoneId.HasValue)
+                {
+                    var sensor = await _sensorRepository.GetByIdAsync(dto.SensorId);
+                    if (sensor != null) dto.ZoneId = sensor.ZoneId;
+                }
+
+                // ✅ Publier sur device/alert — format attendu par l'ESP32
+                try
+                {
+                    await _mqttService.PublishAsync("device/alert", new
+                    {
+                        level = dto.Level,    // "CRITICAL" / "ALERT" / "PRE_ALERT"
+                        message = dto.Message   // "Fumée détectée"
+                    });
+                    _logger.LogInformation("📡 MQTT published to device/alert: {Level}", dto.Level);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to publish MQTT alert for sensor {SensorId}", dto.SensorId);
+                }
+
+                // ✅ Notifier lef frontend (SignalR / WebSocket)
+                await _notifier.NotifyAsync(dto);
+
+                _logger.LogInformation("✅ Alert {Level} created for sensor {SensorId}", dto.Level, dto.SensorId);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to persist alert for sensor {SensorId}", measurement.SensorId);
+                _logger.LogError(ex, "Failed to create alert for sensor {SensorId}", dto.SensorId);
             }
-
-            // publish to MQTT
-            await _mqtt.PublishAsync("device/alert", alertDto);
-            _logger.LogInformation("Published alert for sensor {SensorId}", measurement.SensorId);
         }
     }
 }

@@ -57,6 +57,9 @@ builder.Services.AddSingleton<MqttService>();
 builder.Services.AddScoped<IAlertService, AlertService>();
 // Alert repository
 builder.Services.AddScoped<IAlertRepository, AlertRepository>();
+// SignalR notifier
+builder.Services.AddSignalR();
+builder.Services.AddSingleton<IAlertNotifier, IoTFire.Backend.Api.Services.Implementation.SignalR.SignalRAlertNotifier>();
 
 //configuration de jwt 
 var jwtSettings = builder.Configuration.GetSection("Jwt");
@@ -122,6 +125,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapHub<IoTFire.Backend.Api.Services.Implementation.SignalR.AlertNotifierHub>(IoTFire.Backend.Api.Services.Implementation.SignalR.AlertNotifierHub.HubUrl);
 
 app.Lifetime.ApplicationStopping.Register(() => mqtt.StopAsync().Wait());
 

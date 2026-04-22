@@ -3,6 +3,7 @@ using System;
 using IoTFire.Backend.Api.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace IoTFire.Backend.Api.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260421163638_AddZoneAndIsReadToAlerts")]
+    partial class AddZoneAndIsReadToAlerts
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -176,42 +179,6 @@ namespace IoTFire.Backend.Api.Migrations
                     b.HasIndex("SensorId");
 
                     b.ToTable("Measurements");
-                });
-
-            modelBuilder.Entity("IoTFire.Backend.Api.Models.Entities.MeasurementHistory", b =>
-                {
-                    b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasColumnName("id");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at")
-                        .HasDefaultValueSql("NOW()");
-
-                    b.Property<int>("SensorId")
-                        .HasColumnType("integer")
-                        .HasColumnName("sensor_id");
-
-                    b.Property<string>("TypeMeasure")
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)")
-                        .HasColumnName("type_measure");
-
-                    b.Property<float>("Value")
-                        .HasColumnType("real")
-                        .HasColumnName("value");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("SensorId", "CreatedAt")
-                        .HasDatabaseName("IX_measurement_history_sensor_createdat");
-
-                    b.ToTable("measurement_history", (string)null);
                 });
 
             modelBuilder.Entity("IoTFire.Backend.Api.Models.Entities.Sensor", b =>
@@ -474,17 +441,6 @@ namespace IoTFire.Backend.Api.Migrations
                 });
 
             modelBuilder.Entity("IoTFire.Backend.Api.Models.Entities.Measurement", b =>
-                {
-                    b.HasOne("IoTFire.Backend.Api.Models.Entities.Sensor", "Sensor")
-                        .WithMany()
-                        .HasForeignKey("SensorId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Sensor");
-                });
-
-            modelBuilder.Entity("IoTFire.Backend.Api.Models.Entities.MeasurementHistory", b =>
                 {
                     b.HasOne("IoTFire.Backend.Api.Models.Entities.Sensor", "Sensor")
                         .WithMany()

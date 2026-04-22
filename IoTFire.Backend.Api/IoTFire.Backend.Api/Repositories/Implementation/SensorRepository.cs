@@ -27,6 +27,13 @@ namespace IoTFire.Backend.Api.Repositories.Implementation
                 .Include(s => s.Device)
                 .ToListAsync();
         }
+
+        public async Task<Sensor?> GetByLabelAsync(string label)
+        {
+            return await _context.Sensors
+                .AsNoTracking()
+                .FirstOrDefaultAsync(s => EF.Functions.ILike(s.Label, label));
+        }
         public async Task<Sensor?> GetByIdAsync(int id) =>
             await _context.Sensors
                           .Include(s => s.Zone)

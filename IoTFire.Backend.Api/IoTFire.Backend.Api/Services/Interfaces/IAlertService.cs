@@ -6,5 +6,6 @@ namespace IoTFire.Backend.Api.Services.Interfaces
     public interface IAlertService
     {
         Task CheckAndTriggerAlertAsync(MeasurementDto measurement);
+        Task CreateAlertAsync(AlertDto dto);
     }
 }
