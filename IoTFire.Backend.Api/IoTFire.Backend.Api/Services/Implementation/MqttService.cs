@@ -4,6 +4,7 @@ using MQTTnet;
 using MQTTnet.Client;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.AspNetCore.SignalR;
 using System.Text.RegularExpressions;
 using IoTFire.Backend.Api.Models.DTOs.ManagementSensor;
 using IoTFire.Backend.Api.Services.Interfaces;
@@ -19,11 +20,14 @@ namespace IoTFire.Backend.Api.Services.Implementation
         private readonly IMqttClient _client;
         private readonly IServiceScopeFactory _scopeFactory;
         private readonly ILogger<MqttService> _logger;
+        private readonly Microsoft.AspNetCore.SignalR.IHubContext<IoTFire.Backend.Api.Services.Implementation.SignalR.RealtimeHub> _hubContext;
 
-        public MqttService(IServiceScopeFactory scopeFactory, ILogger<MqttService> logger)
+        public MqttService(IServiceScopeFactory scopeFactory, ILogger<MqttService> logger,
+            Microsoft.AspNetCore.SignalR.IHubContext<IoTFire.Backend.Api.Services.Implementation.SignalR.RealtimeHub> hubContext)
         {
             _scopeFactory = scopeFactory;
             _logger = logger;
+            _hubContext = hubContext;
 
             var factory = new MqttFactory();
             _client = factory.CreateMqttClient();
@@ -195,6 +199,19 @@ namespace IoTFire.Backend.Api.Services.Implementation
 
                 var alertService = services.GetRequiredService<IAlertService>();
                 await alertService.CheckAndTriggerAlertAsync(measurementDto);
+
+                // Push realtime zone update to SignalR group
+                try
+                {
+                    var measurementServiceScoped = services.GetRequiredService<IMeasurementService>();
+                    var zoneRealtime = await measurementServiceScoped.GetZoneRealtimeAsync(device.ZoneId.Value);
+                    await _hubContext.Clients.Group($"zone-{device.ZoneId.Value}")
+                        .SendCoreAsync("ZoneRealtimeUpdated", new object[] { zoneRealtime }, System.Threading.CancellationToken.None);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to send realtime update for zone {ZoneId}", device.ZoneId);
+                }
             }
             catch (Exception ex)
             {
