@@ -146,8 +146,7 @@ namespace IoTFire.Backend.Api.Services.Implementation
                 var measurementService = services.GetRequiredService<IMeasurementService>();
 
                 // 🔍 find sensor
-                var sensor = (await sensorRepo.GetAllAsync(null))
-                    .FirstOrDefault(s => s.Label == sensorId);
+                var sensor = await sensorRepo.GetByLabelAsync(sensorId);
 
                 // 🆕 create sensor if not exists
                 if (sensor == null)
@@ -164,38 +163,38 @@ namespace IoTFire.Backend.Api.Services.Implementation
                         CreatedAt = DateTime.UtcNow,
                         UpdatedAt = DateTime.UtcNow
                     });
+
+                    // Also create default sensor configuration so alerting works
+                    try
+                    {
+                        var configRepo = services.GetRequiredService<ISensorConfigurationRepository>();
+                        var defaultConfig = new SensorConfiguration
+                        {
+                            SensorId = sensor.Id,
+                            PreAlertThreshold = type.ToUpper() == "TEMPERATURE" ? 40 : 0,
+                            AlertThreshold = type.ToUpper() == "TEMPERATURE" ? 50 : (type.ToUpper() == "GAS" ? 1500 : 0),
+                            CriticalThreshold = type.ToUpper() == "TEMPERATURE" ? 60 : (type.ToUpper() == "GAS" ? 2500 : 1),
+                            CreatedAt = DateTime.UtcNow,
+                            UpdatedAt = DateTime.UtcNow
+                        };
+                        await configRepo.CreateOrUpdateAsync(defaultConfig);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Failed to create default sensor configuration for {SensorId}", sensorId);
+                    }
                 }
 
-                // 💾 Save measurement
-                await measurementService.SaveMeasurementAsync(new MeasurementDto
+                // 💾 Save measurement then let AlertService handle alerting
+                var measurementDto = await measurementService.SaveMeasurementAsync(new MeasurementDto
                 {
                     SensorId = sensor.Id,
                     Value = value,
                     TypeMeasure = type
                 });
 
-                // 🚨 ALERT LOGIC
-                string level = "NORMAL";
-
-                if (type == "SMOKE" && value > 2000)
-                    level = "CRITICAL";
-                else if (type == "GAS" && value > 1500)
-                    level = "ALERT";
-                else if (type == "TEMPERATURE" && value > 50)
-                    level = "PRE_ALERT";
-
-                if (level != "NORMAL")
-                {
-                    var alert = new
-                    {
-                        level = level,
-                        message = "Danger detecte"
-                    };
-
-                    await PublishAsync("device/alert", alert);
-
-                    _logger.LogWarning(" ALERT SENT: {Level}", level);
-                }
+                var alertService = services.GetRequiredService<IAlertService>();
+                await alertService.CheckAndTriggerAlertAsync(measurementDto);
             }
             catch (Exception ex)
             {

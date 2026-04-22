@@ -17,6 +17,9 @@ namespace IoTFire.Backend.Api.Models.Entities
         [Column("sensor_id")]
         public int SensorId { get; set; }
 
+        [Column("zone_id")]
+        public int? ZoneId { get; set; }
+
         [Column("type")]
         public string Type { get; set; } = string.Empty;
 
@@ -31,5 +34,8 @@ namespace IoTFire.Backend.Api.Models.Entities
 
         [Column("created_at")]
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+        [Column("is_read")]
+        public bool IsRead { get; set; } = false;
     }
 }

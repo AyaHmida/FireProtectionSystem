@@ -12,6 +12,7 @@ namespace IoTFire.Backend.Api.Data
         public DbSet<Sensor> Sensors { get; set; }
         public DbSet<Device> Devices { get; set; }
         public DbSet<Measurement> Measurements { get; set; }
+        public DbSet<MeasurementHistory> MeasurementHistory { get; set; }
         public DbSet<SensorConfiguration> SensorConfigurations { get; set; }
         public DbSet<Alert> Alerts { get; set; }
 
@@ -115,6 +116,15 @@ namespace IoTFire.Backend.Api.Data
                 entity.Property(a => a.Type).HasMaxLength(50).IsRequired();
                 entity.Property(a => a.Message).HasMaxLength(500).IsRequired(false);
                 entity.Property(a => a.CreatedAt).HasDefaultValueSql("NOW()");
+            });
+
+            modelBuilder.Entity<MeasurementHistory>(entity =>
+            {
+                entity.ToTable("measurement_history");
+                entity.Property(m => m.Value).IsRequired();
+                entity.Property(m => m.TypeMeasure).HasMaxLength(50).IsRequired(false);
+                entity.Property(m => m.CreatedAt).HasDefaultValueSql("NOW()");
+                entity.HasIndex(m => new { m.SensorId, m.CreatedAt }).HasDatabaseName("IX_measurement_history_sensor_createdat");
             });
         }
     }

@@ -4,6 +4,7 @@
     {
         TEMPERATURE,
         HUMIDITY,
-        GAS
+        GAS,
+        SMOKE
     }
 }

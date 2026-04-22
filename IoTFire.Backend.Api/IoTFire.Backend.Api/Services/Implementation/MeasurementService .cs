@@ -30,24 +30,49 @@ namespace IoTFire.Backend.Api.Services.Implementation
 
         public async Task<MeasurementDto> SaveMeasurementAsync(MeasurementDto dto)
         {
-            // 🔹 1) Vérifier si une mesure existe déjà pour ce capteur
-            var existing = await _repository.GetBySensorIdAsync(dto.SensorId);
+            var sensor = await _context.Sensors
+                .AsNoTracking()
+                .FirstOrDefaultAsync(s => s.Id == dto.SensorId);
 
-            Measurement measurement;
+            if (sensor == null)
+                throw new InvalidOperationException($"Sensor {dto.SensorId} not found");
 
-            if (existing != null)
+            var strategy = _context.Database.CreateExecutionStrategy();
+
+            Measurement measurement = null!;
+
+            await strategy.ExecuteAsync(async () =>
             {
-                existing.Value = dto.Value;
-                existing.TypeMeasure = dto.TypeMeasure;
-                existing.CreatedAt = DateTime.UtcNow;
+                using var tx = await _context.Database.BeginTransactionAsync();
 
-                measurement = await _repository.UpdateAsync(existing);
+                var existing = await _repository.GetBySensorIdAsync(dto.SensorId);
 
-                _logger.LogInformation("Measurement UPDATED for sensor {SensorId} value {Value}", dto.SensorId, dto.Value);
-            }
-            else
-            {
-                measurement = new Measurement
+                if (existing != null)
+                {
+                    existing.Value = dto.Value;
+                    existing.TypeMeasure = dto.TypeMeasure;
+                    existing.CreatedAt = DateTime.UtcNow;
+
+                    measurement = await _repository.UpdateAsync(existing);
+
+                    _logger.LogInformation("Measurement UPDATED for sensor {SensorId}", dto.SensorId);
+                }
+                else
+                {
+                    measurement = new Measurement
+                    {
+                        SensorId = dto.SensorId,
+                        Value = dto.Value,
+                        TypeMeasure = dto.TypeMeasure,
+                        CreatedAt = DateTime.UtcNow
+                    };
+
+                    measurement = await _repository.CreateAsync(measurement);
+
+                    _logger.LogInformation("Measurement CREATED for sensor {SensorId}", dto.SensorId);
+                }
+
+                var history = new MeasurementHistory
                 {
                     SensorId = dto.SensorId,
                     Value = dto.Value,
@@ -55,37 +80,20 @@ namespace IoTFire.Backend.Api.Services.Implementation
                     CreatedAt = DateTime.UtcNow
                 };
 
-                measurement = await _repository.CreateAsync(measurement);
+                await _context.MeasurementHistory.AddAsync(history);
+                await _context.SaveChangesAsync();
 
-                _logger.LogInformation("Measurement CREATED for sensor {SensorId} value {Value}", dto.SensorId, dto.Value);
-            }
+                await tx.CommitAsync();
+            });
 
-            // 🔹 Vérifier les seuils
-            var config = await _sensorConfigRepository.GetBySensorIdAsync(dto.SensorId);
-            if (config != null)
-            {
-                if (dto.Value >= config.CriticalThreshold)
-                {
-                    _logger.LogWarning("[CRITICAL] Sensor {SensorId} value {Value}", dto.SensorId, dto.Value);
-                }
-                else if (dto.Value >= config.AlertThreshold)
-                {
-                    _logger.LogWarning("[ALERT] Sensor {SensorId} value {Value}", dto.SensorId, dto.Value);
-                }
-                else if (dto.Value >= config.PreAlertThreshold)
-                {
-                    _logger.LogInformation("[PRE-ALERT] Sensor {SensorId} value {Value}", dto.SensorId, dto.Value);
-                }
-            }
-
-            // 🔹 Alert logic
+            // 🔹 alert logic reste comme avant
             try
             {
                 await _alertService.CheckAndTriggerAlertAsync(dto);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error executing alert check for sensor {SensorId}", dto.SensorId);
+                _logger.LogError(ex, "Error executing alert check");
             }
 
             return new MeasurementDto
@@ -105,56 +113,51 @@ namespace IoTFire.Backend.Api.Services.Implementation
                 TypeMeasure = m.TypeMeasure
             });
         }
+
+        public async Task<List<Models.Entities.MeasurementHistory>> GetSensorHistoryRecordsAsync(int sensorId, DateTime start, DateTime end)
+        {
+            return await _context.MeasurementHistory
+                .AsNoTracking()
+                .Where(h => h.SensorId == sensorId && h.CreatedAt >= start && h.CreatedAt <= end)
+                .OrderBy(h => h.CreatedAt)
+                .ToListAsync();
+        }
         public async Task<ZoneRealtimeDto> GetZoneRealtimeAsync(int zoneId)
         {
-            // 1) Load sensors for the given zone
-            var sensors = await _context.Sensors
+            var sensorIds = await _context.Sensors
                 .AsNoTracking()
                 .Where(s => s.ZoneId == zoneId)
+                .Select(s => s.Id)
                 .ToListAsync();
 
-            if (sensors == null || sensors.Count == 0)
-            {
+            if (!sensorIds.Any())
                 return new ZoneRealtimeDto();
-            }
 
-            var sensorIds = sensors.Select(s => s.Id).ToList();
-
-            // 2) Get recent measurements for these sensors ordered by CreatedAt desc.
-            // Avoid GroupBy in the database; we will fetch recent measurements and pick the first per sensor in-memory.
             var recentMeasurements = await _context.Measurements
                 .AsNoTracking()
                 .Where(m => sensorIds.Contains(m.SensorId))
                 .OrderByDescending(m => m.CreatedAt)
                 .ToListAsync();
 
+            var latestPerSensor = recentMeasurements
+                .GroupBy(m => m.SensorId)
+                .Select(g => g.First())
+                .ToList();
+
             var result = new ZoneRealtimeDto();
 
-            // 3) For each sensor pick the first (latest) measurement
-            foreach (var sensor in sensors)
+            foreach (var m in latestPerSensor)
             {
-                var last = recentMeasurements.FirstOrDefault(m => m.SensorId == sensor.Id);
-                if (last == null)
-                    continue;
-
-                switch (sensor.Type)
+                switch (m.TypeMeasure?.ToUpper())
                 {
-                    case SensorType.TEMPERATURE:
-                        result.Temperature = last.Value;
-                        break;
-                    case SensorType.HUMIDITY:
-                        result.Humidity = last.Value;
-                        break;
-                    case SensorType.GAS:
-                        result.Gas = last.Value;
-                        break;
+                    case "TEMPERATURE": result.Temperature = m.Value; break;
+                    case "HUMIDITY": result.Humidity = m.Value; break;
+                    case "GAS": result.Gas = m.Value; break;
+                    case "SMOKE": result.Gas = m.Value; break; 
                 }
             }
 
-            // 6) Last updated timestamp is the most recent measurement time for the sensors in the zone
-            var lastUpdated = recentMeasurements.OrderByDescending(m => m.CreatedAt).FirstOrDefault();
-            result.UpdatedAt = lastUpdated?.CreatedAt;
-
+            result.UpdatedAt = recentMeasurements.FirstOrDefault()?.CreatedAt;
             return result;
         }
     }
