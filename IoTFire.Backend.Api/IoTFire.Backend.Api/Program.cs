@@ -52,10 +52,12 @@ builder.Services.AddScoped<ISensorConfigurationRepository, SensorConfigurationRe
 builder.Services.AddScoped<ISensorConfigurationService, SensorConfigurationService>();
 
 // Mqtt service
-builder.Services.AddSingleton<MqttService>();
+builder.Services.AddSingleton<IMqttService,MqttService>();
 // Alert service
 builder.Services.AddScoped<IAlertService, AlertService>();
 // Alert repository
+builder.Services.AddScoped<IDeviceControlService, DeviceControlService>();
+builder.Services.AddScoped<IDeviceAuditRepository, DeviceAuditRepository>();
 builder.Services.AddScoped<IAlertRepository, AlertRepository>();
 // SignalR notifier
 builder.Services.AddSignalR();
@@ -112,7 +114,7 @@ builder.Services.AddOpenApi();
 var app = builder.Build();
 
 // Start MQTT when app starts
-var mqtt = app.Services.GetRequiredService<MqttService>();
+var mqtt = app.Services.GetRequiredService<IMqttService>();
 _ = mqtt.StartAsync();
 
 // Configure the HTTP request pipeline.

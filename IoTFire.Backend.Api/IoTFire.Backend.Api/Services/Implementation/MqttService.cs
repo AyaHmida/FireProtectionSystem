@@ -1,29 +1,32 @@
-﻿using System.Text;
-using System.Text.Json;
-using MQTTnet;
-using MQTTnet.Client;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
-using Microsoft.AspNetCore.SignalR;
-using System.Text.RegularExpressions;
+﻿using IoTFire.Backend.Api.Models.DTOs.ControllerCommand;
 using IoTFire.Backend.Api.Models.DTOs.ManagementSensor;
-using IoTFire.Backend.Api.Services.Interfaces;
-using IoTFire.Backend.Api.Repositories.Interfaces;
 using IoTFire.Backend.Api.Models.Entities;
 using IoTFire.Backend.Api.Models.Entities.Enums;
+using IoTFire.Backend.Api.Repositories.Interfaces;
+using IoTFire.Backend.Api.Services.Interfaces;
+using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using MQTTnet;
+using MQTTnet.Client;
 using System.Linq;
+using System.Text;
+using System.Text.Json;
+using System.Text.RegularExpressions;
 
 namespace IoTFire.Backend.Api.Services.Implementation
 {
-    public class MqttService
+    public class MqttService : IMqttService
     {
         private readonly IMqttClient _client;
         private readonly IServiceScopeFactory _scopeFactory;
         private readonly ILogger<MqttService> _logger;
-        private readonly Microsoft.AspNetCore.SignalR.IHubContext<IoTFire.Backend.Api.Services.Implementation.SignalR.RealtimeHub> _hubContext;
+        private readonly IHubContext<SignalR.RealtimeHub> _hubContext;
 
-        public MqttService(IServiceScopeFactory scopeFactory, ILogger<MqttService> logger,
-            Microsoft.AspNetCore.SignalR.IHubContext<IoTFire.Backend.Api.Services.Implementation.SignalR.RealtimeHub> hubContext)
+        public MqttService(
+            IServiceScopeFactory scopeFactory,
+            ILogger<MqttService> logger,
+            IHubContext<SignalR.RealtimeHub> hubContext)
         {
             _scopeFactory = scopeFactory;
             _logger = logger;
@@ -42,7 +45,10 @@ namespace IoTFire.Backend.Api.Services.Implementation
                 .Build();
 
             await _client.ConnectAsync(options);
+
+            // ✅ Subscribe multi-topics
             await _client.SubscribeAsync("home/sensors");
+            await _client.SubscribeAsync("device/control/+");
 
             _logger.LogInformation("✅ MQTT Connected & Subscribed");
         }
@@ -82,42 +88,54 @@ namespace IoTFire.Backend.Api.Services.Implementation
             return string.Join(":", Enumerable.Range(0, 6).Select(i => hex.Substring(i * 2, 2)));
         }
 
+        // ===========================
+        // 🔥 ROUTER MQTT
+        // ===========================
         private async Task HandleReceivedMessage(MqttApplicationMessageReceivedEventArgs e)
         {
             var topic = e.ApplicationMessage.Topic;
             var payload = Encoding.UTF8.GetString(e.ApplicationMessage.Payload ?? []);
-
-            if (topic != "home/sensors") return;
-
-            _logger.LogInformation("📩 MQTT RECV: {Payload}", payload);
 
             using var scope = _scopeFactory.CreateScope();
             var services = scope.ServiceProvider;
 
             try
             {
+                if (topic.StartsWith("home/sensors"))
+                {
+                    await HandleSensorMessage(payload, services);
+                }
+                else if (topic.StartsWith("device/control/"))
+                {
+                    await HandleControlMessage(topic, payload, services);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error processing MQTT");
+            }
+        }
+
+        // ===========================
+        // 📡 SENSOR HANDLER
+        // ===========================
+        private async Task HandleSensorMessage(string payload, IServiceProvider services)
+        {
+            try
+            {
+                _logger.LogInformation("📩 MQTT SENSOR: {Payload}", payload);
+
                 using var doc = JsonDocument.Parse(payload);
                 var root = doc.RootElement;
 
-                // ✅ DEVICE
-                if (!root.TryGetProperty("device", out var deviceObj) ||
-                    !deviceObj.TryGetProperty("id", out var deviceIdProp))
-                {
-                    _logger.LogWarning("device.id missing");
-                    return;
-                }
+                // DEVICE
+                var deviceObj = root.GetProperty("device");
+                var deviceId = deviceObj.GetProperty("id").GetString();
 
-                string deviceId = deviceIdProp.GetString()!;
                 var mac = NormalizeMac(deviceId);
 
-                if (mac == null)
-                {
-                    _logger.LogWarning("Invalid MAC");
-                    return;
-                }
-
                 var deviceRepo = services.GetRequiredService<IDeviceRepository>();
-                var device = await deviceRepo.GetByDeviceIdStringAsync(mac);
+                var device = await deviceRepo.GetByDeviceIdStringAsync(mac!);
 
                 if (device == null || !device.ZoneId.HasValue)
                 {
@@ -125,41 +143,25 @@ namespace IoTFire.Backend.Api.Services.Implementation
                     return;
                 }
 
-                // ✅ SENSOR
-                if (!root.TryGetProperty("sensor", out var sensorObj))
-                {
-                    _logger.LogWarning("sensor missing");
-                    return;
-                }
+                // SENSOR
+                var sensorObj = root.GetProperty("sensor");
+                var sensorId = sensorObj.GetProperty("id").GetString();
+                var type = sensorObj.GetProperty("type").GetString();
 
-                string sensorId = sensorObj.GetProperty("id").GetString()!;
-                string type = sensorObj.GetProperty("type").GetString()!;
-
-                // ✅ DATA
-                if (!root.TryGetProperty("data", out var dataObj))
-                {
-                    _logger.LogWarning("data missing");
-                    return;
-                }
-
+                // DATA
+                var dataObj = root.GetProperty("data");
                 float value = (float)dataObj.GetProperty("value").GetDouble();
-
-                _logger.LogInformation(" Sensor {Type} = {Value}", type, value);
 
                 var sensorRepo = services.GetRequiredService<ISensorRepository>();
                 var measurementService = services.GetRequiredService<IMeasurementService>();
 
-                // 🔍 find sensor
-                var sensor = await sensorRepo.GetByLabelAsync(sensorId);
+                var sensor = await sensorRepo.GetByLabelAsync(sensorId!);
 
-                // 🆕 create sensor if not exists
                 if (sensor == null)
                 {
-                    _logger.LogWarning("Creating sensor: {SensorId}", sensorId);
-
                     sensor = await sensorRepo.CreateAsync(new Sensor
                     {
-                        Label = sensorId,
+                        Label = sensorId!,
                         Type = Enum.TryParse<SensorType>(type, true, out var t) ? t : SensorType.TEMPERATURE,
                         Status = SensorStatus.ONLINE,
                         DeviceId = device.Id,
@@ -167,55 +169,73 @@ namespace IoTFire.Backend.Api.Services.Implementation
                         CreatedAt = DateTime.UtcNow,
                         UpdatedAt = DateTime.UtcNow
                     });
-
-                    // Also create default sensor configuration so alerting works
-                    try
-                    {
-                        var configRepo = services.GetRequiredService<ISensorConfigurationRepository>();
-                        var defaultConfig = new SensorConfiguration
-                        {
-                            SensorId = sensor.Id,
-                            PreAlertThreshold = type.ToUpper() == "TEMPERATURE" ? 40 : 0,
-                            AlertThreshold = type.ToUpper() == "TEMPERATURE" ? 50 : (type.ToUpper() == "GAS" ? 1500 : 0),
-                            CriticalThreshold = type.ToUpper() == "TEMPERATURE" ? 60 : (type.ToUpper() == "GAS" ? 2500 : 1),
-                            CreatedAt = DateTime.UtcNow,
-                            UpdatedAt = DateTime.UtcNow
-                        };
-                        await configRepo.CreateOrUpdateAsync(defaultConfig);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogWarning(ex, "Failed to create default sensor configuration for {SensorId}", sensorId);
-                    }
                 }
 
-                // 💾 Save measurement then let AlertService handle alerting
+                // 💾 Save measurement
                 var measurementDto = await measurementService.SaveMeasurementAsync(new MeasurementDto
                 {
                     SensorId = sensor.Id,
                     Value = value,
-                    TypeMeasure = type
+                    TypeMeasure = type!
                 });
 
+                // 🚨 Alert
                 var alertService = services.GetRequiredService<IAlertService>();
                 await alertService.CheckAndTriggerAlertAsync(measurementDto);
 
-                // Push realtime zone update to SignalR group
+                // 🔥 SIGNALR REALTIME UPDATE
                 try
                 {
                     var measurementServiceScoped = services.GetRequiredService<IMeasurementService>();
-                    var zoneRealtime = await measurementServiceScoped.GetZoneRealtimeAsync(device.ZoneId.Value);
-                    await _hubContext.Clients.Group($"zone-{device.ZoneId.Value}")
-                        .SendCoreAsync("ZoneRealtimeUpdated", new object[] { zoneRealtime }, System.Threading.CancellationToken.None);
+
+                    var zoneRealtime = await measurementServiceScoped
+                        .GetZoneRealtimeAsync(device.ZoneId.Value);
+
+                    await _hubContext.Clients
+                        .Group($"zone-{device.ZoneId.Value}")
+                        .SendCoreAsync(
+                            "ZoneRealtimeUpdated",
+                            new object[] { zoneRealtime },
+                            System.Threading.CancellationToken.None
+                        );
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning(ex, "Failed to send realtime update for zone {ZoneId}", device.ZoneId);
+                    _logger.LogWarning(ex, "Failed realtime update for zone {ZoneId}", device.ZoneId);
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error processing MQTT");
+                _logger.LogError(ex, "Error in HandleSensorMessage");
+            }
+        }
+
+        // ===========================
+        // 🎮 CONTROL HANDLER
+        // ===========================
+        private async Task HandleControlMessage(string topic, string payload, IServiceProvider services)
+        {
+            try
+            {
+                _logger.LogInformation("📩 CONTROL CMD: {Payload}", payload);
+
+                var deviceId = topic.Split('/').Last();
+
+                var command = JsonSerializer.Deserialize<ControlCommandDto>(payload);
+
+                if (command == null)
+                {
+                    _logger.LogWarning("Invalid control payload");
+                    return;
+                }
+
+                var controlService = services.GetRequiredService<IDeviceControlService>();
+
+                await controlService.HandleCommandAsync(deviceId, command, command.UserId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error handling control message");
             }
         }
     }

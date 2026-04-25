@@ -15,7 +15,17 @@ namespace IoTFire.Backend.Api.Services.Implementation.SignalR
 
         public async Task NotifyAsync(AlertDto alert)
         {
-            await _hub.Clients.Group("alarms").SendAsync("AlertReceived", alert);
+            await _hub.Clients.All.SendAsync("AlertReceived", alert);
+
+            if (alert.ZoneId.HasValue)
+            {
+                await _hub.Clients.All.SendAsync("ZoneUpdated", new
+                {
+                    id = alert.ZoneId.Value,
+                    status = alert.Level,   // "CRITICAL", "ALERT", "PRE_ALERT", "NORMAL"
+                    name = alert.Message  
+                });
+            }
         }
     }
 }

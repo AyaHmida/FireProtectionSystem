@@ -10,13 +10,16 @@ namespace IoTFire.Backend.Api.Services.Implementation
     {
         private readonly IZoneRepository _zoneRepository;
         private readonly IUserRepository _userRepository;
+        private readonly IAlertRepository _alertRepository;
 
         public ZoneService(
             IZoneRepository zoneRepository,
-            IUserRepository userRepository)
+            IUserRepository userRepository,
+             IAlertRepository alertRepository)
         {
             _zoneRepository = zoneRepository;
             _userRepository = userRepository;
+            _alertRepository = alertRepository;
         }
 
         public async Task<IEnumerable<ZoneResponseDto>> GetAllAsync(int? userId = null)
@@ -122,19 +125,36 @@ namespace IoTFire.Backend.Api.Services.Implementation
         public async Task<int> GetSensorCountByZoneAsync(int zoneId)
             => await _zoneRepository.GetSensorCountByZoneIdAsync(zoneId);
 
-        private static ZoneResponseDto MapToDto(Zone z) => new()
+        private ZoneResponseDto MapToDto(Zone z)
         {
-            Id = z.Id,
-            Name = z.Name,
-            Description = z.Description,
-            UserId = z.UserId,
-            OccupantName = z.User != null             
+            var lastAlert = _alertRepository.GetLastByZoneId(z.Id);
 
-                            ? $"{z.User.FirstName} {z.User.LastName}"
-                            : null,
-            SensorCount = z.Sensors?.Count ?? 0,
-            CreatedAt = z.CreatedAt,
-            UpdatedAt = z.UpdatedAt
-        };
+            string status;
+            if (lastAlert == null)
+            {
+                status = "NORMAL";
+            }
+            else if (lastAlert.Level == "ALERT" || lastAlert.Level == "CRITICAL")
+            {
+                status = lastAlert.Level; // garde ALERT ou CRITICAL
+            }
+            else
+            {
+                status = "NORMAL"; // PRE_ALERT ou INFO => NORMAL
+            }
+
+            return new ZoneResponseDto
+            {
+                Id = z.Id,
+                Name = z.Name,
+                Description = z.Description,
+                UserId = z.UserId,
+                OccupantName = z.User != null ? $"{z.User.FirstName} {z.User.LastName}" : null,
+                SensorCount = z.Sensors?.Count ?? 0,
+                CreatedAt = z.CreatedAt,
+                UpdatedAt = z.UpdatedAt,
+                Status = status
+            };
+        }
     }
 }

@@ -12,5 +12,6 @@ namespace IoTFire.Backend.Api.Models.DTOs.ManagementSensor
         public int SensorCount { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
+        public string Status { get; set; } = "NORMAL";
     }
 }

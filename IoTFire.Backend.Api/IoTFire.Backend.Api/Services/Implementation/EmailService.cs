@@ -1,7 +1,9 @@
-﻿using IoTFire.Backend.Api.Services.Interfaces;
+﻿using IoTFire.Backend.Api.Models.DTOs;
+using IoTFire.Backend.Api.Repositories.Interfaces;
+using IoTFire.Backend.Api.Services.Interfaces;
+using MailKit.Net.Smtp;
 using MailKit.Security;
 using MimeKit;
-using MailKit.Net.Smtp;
 
 
 namespace IoTFire.Backend.Api.Services.Implementation
@@ -10,6 +12,9 @@ namespace IoTFire.Backend.Api.Services.Implementation
     {
         private readonly IConfiguration _config;
         private readonly ILogger<EmailService> _logger;
+      
+
+
 
         public EmailService(IConfiguration config, ILogger<EmailService> logger)
         {

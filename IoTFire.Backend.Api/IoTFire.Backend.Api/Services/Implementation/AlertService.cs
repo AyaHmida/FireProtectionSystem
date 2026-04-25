@@ -1,8 +1,9 @@
 using IoTFire.Backend.Api.Models.DTOs;
 using IoTFire.Backend.Api.Models.DTOs.ManagementSensor;
 using IoTFire.Backend.Api.Models.Entities.Enums;
-using IoTFire.Backend.Api.Services.Interfaces;
+using IoTFire.Backend.Api.Repositories.Implementation;
 using IoTFire.Backend.Api.Repositories.Interfaces;
+using IoTFire.Backend.Api.Services.Interfaces;
 using Microsoft.Extensions.Logging;
 
 namespace IoTFire.Backend.Api.Services.Implementation
@@ -13,26 +14,33 @@ namespace IoTFire.Backend.Api.Services.Implementation
         private readonly IAlertRepository _alertRepository;
         private readonly ISensorRepository _sensorRepository;
         private readonly IDeviceRepository _deviceRepository;
+        private readonly IZoneRepository _zoneRepository;
+        private readonly IUserRepository _userRepository;
         private readonly IAlertNotifier _notifier;
-        private readonly MqttService _mqttService;          // ✅ AJOUT
+        private readonly IMqttService _mqttService; 
+        
         private readonly ILogger<AlertService> _logger;
+        private readonly IEmailService _emailService;
 
         public AlertService(
             ISensorConfigurationService configService,
             IAlertRepository alertRepository,
             ISensorRepository sensorRepository,
             IDeviceRepository deviceRepository,
-            IAlertNotifier notifier,
-            MqttService mqttService,                        // ✅ AJOUT
-            ILogger<AlertService> logger)
+            IAlertNotifier notifier, IUserRepository userRepository,
+            IMqttService mqttService, IZoneRepository zoneRepository,                       // ✅ AJOUT
+            ILogger<AlertService> logger, IEmailService emailService)
         {
             _configService = configService;
             _alertRepository = alertRepository;
             _sensorRepository = sensorRepository;
             _deviceRepository = deviceRepository;
             _notifier = notifier;
-            _mqttService = mqttService;                  // ✅ AJOUT
+            _mqttService = mqttService;                 
             _logger = logger;
+            _emailService = emailService;
+            _zoneRepository = zoneRepository;
+            _userRepository = userRepository;
         }
 
         public async Task CheckAndTriggerAlertAsync(MeasurementDto measurement)
@@ -73,33 +81,66 @@ namespace IoTFire.Backend.Api.Services.Implementation
                     if (measurement.Value > 0)
                     {
                         level = "CRITICAL";
-                        message = "Fumée détectée";
+                        message = "Fumee detectee";
+                    }
+                    else
+                    {
+                        level = "NORMAL";
+                        message = "Retour à la normale";
                     }
                     break;
 
                 case "GAS":
                     if (measurement.Value >= critical) { level = "CRITICAL"; message = "Fuite de gaz critique"; }
-                    else if (measurement.Value >= alert) { level = "ALERT"; message = "Fuite de gaz détectée"; }
+                    else if (measurement.Value >= alert) { level = "ALERT"; message = "Fuite de gaz detectee"; }
+                    else if (measurement.Value >= pre) { level = "PRE_ALERT"; message = "Gaz en hausse"; }
+                    else
+                    {
+                        level = "NORMAL";
+                        message = "Retour a la normale";
+                    }
                     break;
 
+
                 case "TEMPERATURE":
-                    if (measurement.Value >= critical) { level = "CRITICAL"; message = "Température critique"; }
-                    else if (measurement.Value >= alert) { level = "ALERT"; message = "Température élevée"; }
-                    else if (measurement.Value >= pre) { level = "PRE_ALERT"; message = "Température en hausse"; }
+                    if (measurement.Value >= critical) { level = "CRITICAL"; message = "Temperature critique"; }
+                    else if (measurement.Value >= alert) { level = "ALERT"; message = "Temperature elevee"; }
+                    else if (measurement.Value >= pre) { level = "PRE_ALERT"; message = "Temperature en hausse"; }
+                    else
+                    {
+                        level = "NORMAL";
+                        message = "Retour à la normale";
+                    }
                     break;
 
                 default:
                     if (measurement.Value >= critical) { level = "CRITICAL"; message = "Valeur critique"; }
-                    else if (measurement.Value >= alert) { level = "ALERT"; message = "Valeur au-dessus du seuil d'alerte"; }
-                    else if (measurement.Value >= pre) { level = "PRE_ALERT"; message = "Valeur au-dessus du seuil pré-alerte"; }
+                    else if (measurement.Value >= alert) { level = "ALERT"; message = "Valeur au-dessus du seuil d alerte"; }
+                    else if (measurement.Value >= pre) { level = "PRE_ALERT"; message = "Valeur au-dessus du seuil pre-alerte"; }
+                    else
+                    {
+                        level = "NORMAL";
+                        message = "Retour à la normale";
+                    }
                     break;
             }
+
+
 
             if (level == "NORMAL")
             {
                 _logger.LogDebug("Sensor {SensorId} value {Value} is NORMAL", measurement.SensorId, measurement.Value);
-                return;
+
+                // ✅ Publier NORMAL vers l’ESP32
+                await _mqttService.PublishAsync("device/alert", new
+                {
+                    level = "NORMAL",
+                    message = "Retour à la normale"
+                });
+
+                return; // on ne crée pas d’alerte en DB pour NORMAL
             }
+
 
             // Récupérer DeviceId + ZoneId
             string deviceIdString = string.Empty;
@@ -134,14 +175,13 @@ namespace IoTFire.Backend.Api.Services.Implementation
                 CreatedAt = DateTime.UtcNow
             });
         }
-
         public async Task CreateAlertAsync(AlertDto dto)
         {
             if (dto == null) throw new ArgumentNullException(nameof(dto));
 
             try
             {
-                // ✅ Anti-spam sauf pour SMOKE (chaque détection compte)
+                // ✅ Anti-spam sauf SMOKE
                 bool duplicate = false;
                 if (dto.Type?.ToUpper() != "SMOKE")
                 {
@@ -157,11 +197,29 @@ namespace IoTFire.Backend.Api.Services.Implementation
                     return;
                 }
 
-                // 💾 Persister en BDD
+                // ✅ IMPORTANT : résoudre ZoneId AVANT sauvegarde
+                if (!dto.ZoneId.HasValue)
+                {
+                    try
+                    {
+                        var sensor = await _sensorRepository.GetByIdAsync(dto.SensorId);
+                        if (sensor != null)
+                        {
+                            dto.ZoneId = sensor.ZoneId;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Failed to resolve ZoneId for sensor {SensorId}", dto.SensorId);
+                    }
+                }
+
+                // 💾 Sauvegarde UNIQUE (corrigé)
                 var created = await _alertRepository.CreateAsync(new Models.Entities.Alert
                 {
                     DeviceId = dto.DeviceId,
                     SensorId = dto.SensorId,
+                    ZoneId = dto.ZoneId, // ✅ FIX PRINCIPAL
                     Type = dto.Type,
                     Value = dto.Value,
                     Level = dto.Level,
@@ -169,25 +227,20 @@ namespace IoTFire.Backend.Api.Services.Implementation
                     CreatedAt = dto.CreatedAt
                 });
 
+                // ✅ Mapper résultat
                 dto.Id = created.Id;
                 dto.CreatedAt = created.CreatedAt;
                 dto.IsRead = false;
 
-                // Enrichir ZoneId si manquant
-                if (!dto.ZoneId.HasValue)
-                {
-                    var sensor = await _sensorRepository.GetByIdAsync(dto.SensorId);
-                    if (sensor != null) dto.ZoneId = sensor.ZoneId;
-                }
-
-                // ✅ Publier sur device/alert — format attendu par l'ESP32
+                // ✅ MQTT
                 try
                 {
                     await _mqttService.PublishAsync("device/alert", new
                     {
-                        level = dto.Level,    // "CRITICAL" / "ALERT" / "PRE_ALERT"
-                        message = dto.Message   // "Fumée détectée"
+                        level = dto.Level,
+                        message = dto.Message
                     });
+
                     _logger.LogInformation("📡 MQTT published to device/alert: {Level}", dto.Level);
                 }
                 catch (Exception ex)
@@ -195,9 +248,9 @@ namespace IoTFire.Backend.Api.Services.Implementation
                     _logger.LogError(ex, "Failed to publish MQTT alert for sensor {SensorId}", dto.SensorId);
                 }
 
-                // ✅ Notifier lef frontend (SignalR / WebSocket)
+                // ✅ SignalR
                 await _notifier.NotifyAsync(dto);
-
+                await SendAlertEmailAsync(dto);
                 _logger.LogInformation("✅ Alert {Level} created for sensor {SensorId}", dto.Level, dto.SensorId);
             }
             catch (Exception ex)
@@ -205,5 +258,64 @@ namespace IoTFire.Backend.Api.Services.Implementation
                 _logger.LogError(ex, "Failed to create alert for sensor {SensorId}", dto.SensorId);
             }
         }
+
+        private async Task SendAlertEmailAsync(AlertDto alert)
+        {
+            try
+            {
+                string zoneName = "Zone inconnue";
+                int sensorCount = 0;
+                string? recipientEmail = null;
+                string? recipientName = null;
+
+                if (alert.ZoneId.HasValue)
+                {
+                    var zone = await _zoneRepository.GetByIdAsync(alert.ZoneId.Value);
+                    if (zone != null)
+                    {
+                        zoneName = zone.Name;
+                        sensorCount = await _zoneRepository.GetSensorCountByZoneIdAsync(zone.Id);
+
+                        if (zone.UserId > 0)
+                        {
+                            var user = await _userRepository.GetByIdAsync(zone.UserId);
+                            if (user != null)
+                            {
+                                recipientEmail = user.Email;
+                                recipientName = user.FirstName;
+                            }
+                        }
+                    }
+                }
+
+                if (!string.IsNullOrEmpty(recipientEmail))
+                {
+                    var subject = $"🚨 Alerte {alert.Level} détectée — {zoneName}";
+                    var htmlBody = $@"
+        <div style='font-family:Arial,sans-serif;max-width:600px;margin:auto;padding:24px;'>
+            <h2 style='color:#E74C3C;'>🔥 Système Anti-Incendie — Alerte</h2>
+            <p>Bonjour <strong>{recipientName}</strong>,</p>
+            <p>Une alerte de niveau <strong>{alert.Level}</strong> a été détectée.</p>
+            <p><strong>Zone :</strong> {zoneName}</p>
+            <p><strong>Capteurs actifs :</strong> {sensorCount}</p>
+            <p><strong>Type :</strong> {alert.Type} | Valeur : {alert.Value}</p>
+            <p><strong>Date :</strong> {alert.CreatedAt}</p>
+            <p style='color:#888;font-size:12px;'>Veuillez intervenir immédiatement.</p>
+        </div>";
+
+                    await _emailService.SendEmailAsync(recipientEmail, subject, htmlBody);
+                    _logger.LogInformation("📧 Email envoyé à {Email} pour alerte {Level}", recipientEmail, alert.Level);
+                }
+                else
+                {
+                    _logger.LogWarning("⚠️ Aucun destinataire trouvé pour l'alerte {Id}", alert.Id);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "❌ Échec de l'envoi d'email pour l'alerte {Id}", alert.Id);
+            }
+        }
+
     }
 }

@@ -15,6 +15,7 @@ namespace IoTFire.Backend.Api.Data
         public DbSet<MeasurementHistory> MeasurementHistory { get; set; }
         public DbSet<SensorConfiguration> SensorConfigurations { get; set; }
         public DbSet<Alert> Alerts { get; set; }
+        public DbSet<DeviceAudit> DeviceAudits { get; set; }
 
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
