@@ -1,4 +1,6 @@
-﻿namespace IoTFire.Backend.Api.Services.Interfaces
+﻿using IoTFire.Backend.Api.Models.DTOs;
+
+namespace IoTFire.Backend.Api.Services.Interfaces
 {
     public interface IEmailService
     {

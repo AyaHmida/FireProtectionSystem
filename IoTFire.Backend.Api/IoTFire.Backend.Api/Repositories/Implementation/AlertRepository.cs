@@ -39,6 +39,14 @@ namespace IoTFire.Backend.Api.Repositories.Implementation
             if (sensorId.HasValue) query = query.Where(a => a.SensorId == sensorId.Value);
             return await query.OrderByDescending(a => a.CreatedAt).ToListAsync();
         }
+        public Alert? GetLastByZoneId(int zoneId)
+        {
+            return _context.Alerts
+                .Where(a => a.ZoneId == zoneId)
+                .OrderByDescending(a => a.CreatedAt)
+                .FirstOrDefault();
+        }
+
 
         public async Task<IEnumerable<Alert>> GetRecentBySensorAsync(int sensorId, DateTime since)
         {
@@ -46,6 +54,14 @@ namespace IoTFire.Backend.Api.Repositories.Implementation
                 .Where(a => a.SensorId == sensorId && a.CreatedAt >= since)
                 .OrderByDescending(a => a.CreatedAt)
                 .ToListAsync();
+        }
+
+        public async Task<(IEnumerable<Alert> Items, int Total)> GetByZoneAsync(int zoneId, int page, int pageSize)
+        {
+            var query = _context.Alerts.Where(a => a.ZoneId == zoneId).OrderByDescending(a => a.CreatedAt);
+            var total = await query.CountAsync();
+            var items = await query.Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
+            return (items, total);
         }
 
         // helper for controller integration

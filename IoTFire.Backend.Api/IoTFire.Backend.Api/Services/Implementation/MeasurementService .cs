@@ -150,11 +150,15 @@ namespace IoTFire.Backend.Api.Services.Implementation
             {
                 switch (m.TypeMeasure?.ToUpper())
                 {
+                    case "TEMP":
                     case "TEMPERATURE": result.Temperature = m.Value; break;
+                    case "HUM":
                     case "HUMIDITY": result.Humidity = m.Value; break;
+                    case "GAZ":
                     case "GAS": result.Gas = m.Value; break;
-                    case "SMOKE": result.Gas = m.Value; break; 
+                    case "SMOKE": result.Gas = m.Value; break;
                 }
+
             }
 
             result.UpdatedAt = recentMeasurements.FirstOrDefault()?.CreatedAt;

@@ -12,5 +12,7 @@ namespace IoTFire.Backend.Api.Models.DTOs
         public string Message { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public bool IsRead { get; set; } = false;
+        public string ZoneName { get; set; } = string.Empty;
+        public int SensorCount { get; set; } = 0;
     }
 }

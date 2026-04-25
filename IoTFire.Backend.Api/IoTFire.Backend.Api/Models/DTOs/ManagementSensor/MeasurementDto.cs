@@ -11,7 +11,10 @@ namespace IoTFire.Backend.Api.Models.DTOs.ManagementSensor
         public float Value { get; set; }
 
         [Required]
-        public string TypeMeasure { get; set; } = string.Empty;
+        public string TypeMeasure { get; set; } = string.Empty; 
+        [Required]
+        public string AlertLevel { get; set; } = string.Empty;
+
     }
 
 }
