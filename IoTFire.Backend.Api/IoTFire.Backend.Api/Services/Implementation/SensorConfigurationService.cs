@@ -30,6 +30,11 @@ namespace IoTFire.Backend.Api.Services.Implementation
 
         public async Task<SensorConfigurationDto> SetConfigurationAsync(SensorConfigurationDto dto)
         {
+            if (dto.PreAlertThreshold >= dto.AlertThreshold ||
+        dto.AlertThreshold >= dto.CriticalThreshold)
+            {
+                throw new Exception("Order must be: PreAlert < Alert < Critical");
+            }
             var config = new SensorConfiguration
             {
                 SensorId = dto.SensorId,

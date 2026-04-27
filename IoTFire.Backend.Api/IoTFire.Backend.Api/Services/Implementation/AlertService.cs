@@ -248,6 +248,7 @@ namespace IoTFire.Backend.Api.Services.Implementation
                     _logger.LogError(ex, "Failed to publish MQTT alert for sensor {SensorId}", dto.SensorId);
                 }
 
+
                 // ✅ SignalR
                 await _notifier.NotifyAsync(dto);
                 await SendAlertEmailAsync(dto);

@@ -37,6 +37,11 @@ namespace IoTFire.Backend.Api.Services.Implementation
             return sensor == null ? null : MapToDto(sensor);
         }
 
+        public async Task<IEnumerable<SensorResponseDto>> GetByZoneIdAsync(int zoneId)
+        {
+            var sensors = await _sensorRepository.GetByZoneIdAsync(zoneId);
+            return sensors.Select(MapToDto);
+        }
 
         public async Task<(SensorResponseDto? Dto, string? Error)> RegisterSensorAsync(SensorRegisterDto dto)
         {

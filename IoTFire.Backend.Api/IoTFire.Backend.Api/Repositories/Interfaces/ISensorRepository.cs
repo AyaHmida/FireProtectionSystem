@@ -11,7 +11,8 @@ namespace IoTFire.Backend.Api.Repositories.Interfaces
         Task<IEnumerable<Sensor>> GetByDeviceIdAsync(int deviceId);
             Task<Sensor> CreateAsync(Sensor sensor);
             Task<Sensor?> UpdateAsync(Sensor sensor);
-        Task<Sensor?> GetByLabelAsync(string label); 
+        Task<Sensor?> GetByLabelAsync(string label);
+        Task<IEnumerable<Sensor>> GetByZoneIdAsync(int zoneId);
 
 
         Task<bool> DeleteAsync(int id);
