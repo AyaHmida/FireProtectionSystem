@@ -139,26 +139,31 @@ namespace IoTFire.Backend.Api.Services.Implementation
                 .OrderByDescending(m => m.CreatedAt)
                 .ToListAsync();
 
-            var latestPerSensor = recentMeasurements
-                .GroupBy(m => m.SensorId)
-                .Select(g => g.First())
+            // ✅ FIX: grouper par type normalisé, pas par SensorId
+            static string NormalizeType(string? t) => t?.ToUpper() switch
+            {
+                "TEMP" or "TEMPERATURE" => "TEMPERATURE",
+                "HUM" or "HUMIDITY" => "HUMIDITY",
+                "GAZ" or "GAS" => "GAS",
+                "SMOKE" => "GAS",
+                _ => t?.ToUpper() ?? ""
+            };
+
+            var latestPerType = recentMeasurements
+                .GroupBy(m => NormalizeType(m.TypeMeasure))
+                .Select(g => g.First()) // déjà trié par CreatedAt desc → premier = plus récent
                 .ToList();
 
             var result = new ZoneRealtimeDto();
 
-            foreach (var m in latestPerSensor)
+            foreach (var m in latestPerType)
             {
-                switch (m.TypeMeasure?.ToUpper())
+                switch (NormalizeType(m.TypeMeasure))
                 {
-                    case "TEMP":
                     case "TEMPERATURE": result.Temperature = m.Value; break;
-                    case "HUM":
                     case "HUMIDITY": result.Humidity = m.Value; break;
-                    case "GAZ":
                     case "GAS": result.Gas = m.Value; break;
-                    case "SMOKE": result.Gas = m.Value; break;
                 }
-
             }
 
             result.UpdatedAt = recentMeasurements.FirstOrDefault()?.CreatedAt;

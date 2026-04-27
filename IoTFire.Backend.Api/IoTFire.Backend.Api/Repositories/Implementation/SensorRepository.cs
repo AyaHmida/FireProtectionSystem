@@ -34,6 +34,13 @@ namespace IoTFire.Backend.Api.Repositories.Implementation
                 .AsNoTracking()
                 .FirstOrDefaultAsync(s => EF.Functions.ILike(s.Label, label));
         }
+
+        public async Task<IEnumerable<Sensor>> GetByZoneIdAsync(int zoneId)
+        {
+            return await _context.Sensors
+                .Where(s => s.ZoneId == zoneId)
+                .ToListAsync();
+        }
         public async Task<Sensor?> GetByIdAsync(int id) =>
             await _context.Sensors
                           .Include(s => s.Zone)

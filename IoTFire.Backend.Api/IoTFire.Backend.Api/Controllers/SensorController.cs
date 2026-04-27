@@ -37,6 +37,12 @@ namespace IoTFire.Backend.Api.Controllers
             if (result.Dto == null) return BadRequest(result.Error);
             return Ok(result.Dto);
         }
+        [HttpGet("by-zone/{zoneId}")]
+        public async Task<IActionResult> GetByZone(int zoneId)
+        {
+            var sensors = await _sensorService.GetByZoneIdAsync(zoneId);
+            return Ok(sensors);
+        }
 
 
 

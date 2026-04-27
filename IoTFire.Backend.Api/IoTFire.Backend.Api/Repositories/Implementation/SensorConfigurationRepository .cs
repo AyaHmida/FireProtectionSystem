@@ -33,7 +33,7 @@ namespace IoTFire.Backend.Api.Repositories.Implementation
                 _context.SensorConfigurations.Update(existing);
             }
             await _context.SaveChangesAsync();
-            return config;
+            return existing;
         }
     }
 
