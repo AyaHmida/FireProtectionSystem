@@ -1,6 +1,7 @@
-﻿namespace IoTFire.Backend.Api.Models.DTOs.ManagementSensor
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace IoTFire.Backend.Api.Models.DTOs.ManagementSensor
 {
-    using System.ComponentModel.DataAnnotations;
 
    
     public class CreateDeviceDto
