@@ -26,4 +26,14 @@
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.15.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="IoTFire.Backend.Api\Models\DTOs\Emergency\" />
+    <Folder Include="IoTFire.Backend.Api\Models\DTOs\System\" />
+    <Folder Include="IoTFire.Backend.Api\Models\Entities\" />
+    <Folder Include="IoTFire.Backend.Api\Repositories\Implementation\" />
+    <Folder Include="IoTFire.Backend.Api\Repositories\Interfaces\" />
+    <Folder Include="IoTFire.Backend.Api\Services\Implementation\" />
+    <Folder Include="IoTFire.Backend.Api\Services\Interfaces\" />
+  </ItemGroup>
+
 </Project>

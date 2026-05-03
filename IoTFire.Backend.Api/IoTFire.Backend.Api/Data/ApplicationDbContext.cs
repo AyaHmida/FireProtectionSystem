@@ -16,6 +16,9 @@ namespace IoTFire.Backend.Api.Data
         public DbSet<SensorConfiguration> SensorConfigurations { get; set; }
         public DbSet<Alert> Alerts { get; set; }
         public DbSet<DeviceAudit> DeviceAudits { get; set; }
+        public DbSet<SystemStat> SystemStates { get; set; }
+        public DbSet<SystemAudits> SystemAudits { get; set; }
+        public DbSet<EmergencyContacts> EmergencyContacts { get; set; }
 
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -49,6 +52,8 @@ namespace IoTFire.Backend.Api.Data
                 entity.HasOne(u => u.ParentUser).WithMany(u => u.FamilyMembers).HasForeignKey(u => u.ParentUserId)
                        .OnDelete(DeleteBehavior.Restrict).IsRequired(false);
             });
+
+            // System state, audits and emergency contacts configuration removed
 
             modelBuilder.Entity<Zone>(entity =>
             {

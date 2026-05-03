@@ -59,6 +59,25 @@ builder.Services.AddScoped<IAlertService, AlertService>();
 builder.Services.AddScoped<IDeviceControlService, DeviceControlService>();
 builder.Services.AddScoped<IDeviceAuditRepository, DeviceAuditRepository>();
 builder.Services.AddScoped<IAlertRepository, AlertRepository>();
+//Contact d'urgence
+builder.Services.AddScoped<IEmergencyContactsRepository, EmergencyContactsRepository>();
+builder.Services.AddScoped<IEmergencyContactsService, EmergencyContactsService>();
+//system audit
+builder.Services.AddScoped<ISystemAuditsRepository, SystemAuditsRepository>();
+builder.Services.AddScoped<ISystemAuditsService, SystemAuditsService>();
+// System state & audits
+// builder.Services.AddScoped<ISystemStateRepository, SystemStateRepository>();
+// builder.Services.AddScoped<ISystemAuditRepository, SystemAuditRepository>();
+// builder.Services.AddScoped<ISystemStateService, SystemStateService>();
+// builder.Services.AddScoped<ISystemAuditService, SystemAuditService>();
+
+// Emergency contacts
+// builder.Services.AddScoped<IEmergencyContactRepository, EmergencyContactRepository>();
+// builder.Services.AddScoped<IEmergencyContactService, EmergencyContactService>();
+
+//system stat
+builder.Services.AddScoped<ISystemStatService, SystemStatService>();
+builder.Services.AddScoped<ISystemStatRepository, SystemStatRepository>();
 // SignalR notifier
 builder.Services.AddSignalR();
 builder.Services.AddSingleton<IAlertNotifier, IoTFire.Backend.Api.Services.Implementation.SignalR.SignalRAlertNotifier>();
@@ -100,17 +119,18 @@ builder.Services.AddControllers()
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 //cros pour react frontEnd
-//builder.Services.AddCors(options =>
-//{
-//    options.AddPolicy("AllowReactApp", policy =>
-//        policy.WithOrigins(
-//                "http://localhost:3000",   // React dev server
-//                "http://localhost:5173"    // Vite dev server
-//              )
-//              .AllowAnyHeader()
-//              .AllowAnyMethod()
-//              .AllowCredentials());
-//});
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowReactApp", policy =>
+        policy.WithOrigins(
+                            "http://localhost:5173",
+                            "http://localhost:8081",
+                            "http://192.168.1.107:8081")
+              .AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowCredentials());
+});
+
 var app = builder.Build();
 
 // Start MQTT when app starts
@@ -124,7 +144,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-//app.UseCors("AllowReactApp");
+app.UseCors("AllowReactApp");
 app.UseAuthentication();       
 app.UseAuthorization();
 

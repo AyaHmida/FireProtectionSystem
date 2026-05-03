@@ -1,5 +1,6 @@
-﻿namespace IoTFire.Backend.Api.Models.DTOs.Auth;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace IoTFire.Backend.Api.Models.DTOs.Auth;
 
     public class ChangePasswordDto
     {
