@@ -78,6 +78,9 @@ builder.Services.AddScoped<ISystemAuditsService, SystemAuditsService>();
 //system stat
 builder.Services.AddScoped<ISystemStatService, SystemStatService>();
 builder.Services.AddScoped<ISystemStatRepository, SystemStatRepository>();
+// ── Chatbot 
+builder.Services.AddScoped<IChatbotRepository, ChatbotRepository>();
+builder.Services.AddScoped<IChatbotService, ChatbotService>();
 // SignalR notifier
 builder.Services.AddSignalR();
 builder.Services.AddSingleton<IAlertNotifier, IoTFire.Backend.Api.Services.Implementation.SignalR.SignalRAlertNotifier>();
