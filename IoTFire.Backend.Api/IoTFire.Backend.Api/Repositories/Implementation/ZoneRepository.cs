@@ -25,6 +25,15 @@ namespace IoTFire.Backend.Api.Repositories.Implementation
 
             return await query.OrderByDescending(z => z.CreatedAt).ToListAsync();
         }
+        public async Task UpdateStatusAsync(int zoneId, string status)
+        {
+            var zone = await _context.Zones.FindAsync(zoneId);
+            if (zone == null) return;
+
+            zone.Status = status;
+            zone.UpdatedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+        }
 
         public async Task<Zone?> GetByIdAsync(int id)
         {

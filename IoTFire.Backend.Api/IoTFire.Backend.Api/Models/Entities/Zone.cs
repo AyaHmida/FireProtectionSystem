@@ -29,6 +29,8 @@ namespace IoTFire.Backend.Api.Models.Entities
 
         // Navigation vers Sensors
         public ICollection<Sensor> Sensors { get; set; } = new List<Sensor>();
+        public string Status { get; set; } = "NORMAL"; // ← ajouter
+
 
         [Column("created_at")]
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

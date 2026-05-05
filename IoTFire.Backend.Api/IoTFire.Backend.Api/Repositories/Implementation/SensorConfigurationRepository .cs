@@ -23,6 +23,8 @@ namespace IoTFire.Backend.Api.Repositories.Implementation
             if (existing == null)
             {
                 _context.SensorConfigurations.Add(config);
+                await _context.SaveChangesAsync();
+                return config;
             }
             else
             {
@@ -31,9 +33,10 @@ namespace IoTFire.Backend.Api.Repositories.Implementation
                 existing.CriticalThreshold = config.CriticalThreshold;
                 existing.UpdatedAt = DateTime.UtcNow;
                 _context.SensorConfigurations.Update(existing);
+                await _context.SaveChangesAsync();
+                return existing;
             }
-            await _context.SaveChangesAsync();
-            return existing;
+            
         }
     }
 
