@@ -20,6 +20,9 @@ namespace IoTFire.Backend.Api.Models.Entities
         [Column("zone_id")]
         public int? ZoneId { get; set; }
 
+        [ForeignKey("ZoneId")]
+        public Zone? Zone { get; set; }
+
         [Column("type")]
         public string Type { get; set; } = string.Empty;
 

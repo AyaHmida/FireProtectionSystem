@@ -19,7 +19,7 @@ namespace IoTFire.Backend.Api.Data
         public DbSet<SystemStat> SystemStates { get; set; }
         public DbSet<SystemAudits> SystemAudits { get; set; }
         public DbSet<EmergencyContacts> EmergencyContacts { get; set; }
-
+        public DbSet<ChatMessage> ChatMessages { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
