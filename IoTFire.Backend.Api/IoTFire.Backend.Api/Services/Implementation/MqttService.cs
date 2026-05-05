@@ -123,6 +123,14 @@ namespace IoTFire.Backend.Api.Services.Implementation
         {
             try
             {
+                var systemStatService = services.GetRequiredService<ISystemStatService>();
+                var systemState = await systemStatService.GetStatusAsync();
+
+                if (!systemState.IsActive)
+                {
+                    _logger.LogWarning("⛔ System is inactive — sensor data ignored");
+                    return; // ← bloque tout le reste
+                }
                 _logger.LogInformation("📩 MQTT SENSOR: {Payload}", payload);
 
                 using var doc = JsonDocument.Parse(payload);
@@ -210,9 +218,7 @@ namespace IoTFire.Backend.Api.Services.Implementation
             }
         }
 
-        // ===========================
-        // 🎮 CONTROL HANDLER
-        // ===========================
+        //  CONTROL HANDLER
         private async Task HandleControlMessage(string topic, string payload, IServiceProvider services)
         {
             try

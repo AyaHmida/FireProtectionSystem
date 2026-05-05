@@ -59,9 +59,10 @@ namespace IoTFire.Backend.Api.Services.Implementation
                 (pre, alert, critical) = type switch
                 {
                     "TEMPERATURE" => (40f, 50f, 60f),
-                    "GAS" => (0f, 1500f, 2500f),
-                    "SMOKE" => (0f, 0f, 1f),   // toute valeur > 0 = CRITICAL
-                    _ => (0f, 0f, 0f)
+                    "GAS" => (300f, 1500f, 2500f),  // ✅ pre: 0→300 (évite faux positif à 0)
+                    "HUMIDITY" => (85f, 92f, 98f),     // ✅ ajouté (évite le default)
+                    "SMOKE" => (0f, 0f, 1f),
+                    _ => (float.MaxValue, float.MaxValue, float.MaxValue) // ✅ jamais déclenché
                 };
             }
             else
@@ -77,7 +78,6 @@ namespace IoTFire.Backend.Api.Services.Implementation
             switch (type)
             {
                 case "SMOKE":
-                    // ✅ Détection binaire : toute valeur > 0 = CRITICAL immédiat
                     if (measurement.Value > 0)
                     {
                         level = "CRITICAL";
@@ -91,56 +91,107 @@ namespace IoTFire.Backend.Api.Services.Implementation
                     break;
 
                 case "GAS":
-                    if (measurement.Value >= critical) { level = "CRITICAL"; message = "Fuite de gaz critique"; }
-                    else if (measurement.Value >= alert) { level = "ALERT"; message = "Fuite de gaz detectee"; }
-                    else if (measurement.Value >= pre) { level = "PRE_ALERT"; message = "Gaz en hausse"; }
-                    else
+                    if (measurement.Value >= critical)
                     {
-                        level = "NORMAL";
-                        message = "Retour a la normale";
+                        level = "CRITICAL";
+                        message = $"[CRITIQUE] Concentration de gaz dangereuse détectée : {measurement.Value} ppm — Évacuation immédiate requise";
                     }
+                    else if (measurement.Value >= alert)
+                    {
+                        level = "ALERT";
+                        message = $"[ALERTE] Niveau de gaz anormal : {measurement.Value} ppm — Vérification urgente requise";
+                    }
+                    else if (measurement.Value >= pre)
+                    {
+                        level = "PRE_ALERT";
+                        message = $"[PRÉ-ALERTE] Hausse du taux de gaz detectee : {measurement.Value} ppm — Surveillance renforcée";
+                    }
+                    else { level = "NORMAL"; message = string.Empty; }
+
                     break;
 
 
                 case "TEMPERATURE":
-                    if (measurement.Value >= critical) { level = "CRITICAL"; message = "Temperature critique"; }
-                    else if (measurement.Value >= alert) { level = "ALERT"; message = "Temperature elevee"; }
-                    else if (measurement.Value >= pre) { level = "PRE_ALERT"; message = "Temperature en hausse"; }
-                    else
+                    if (measurement.Value >= critical)
                     {
-                        level = "NORMAL";
-                        message = "Retour à la normale";
+                        level = "CRITICAL";
+                        message = $"[CRITIQUE] Temperature extreme : {measurement.Value}°C — Risque d'incendie immediat";
                     }
+                    else if (measurement.Value >= alert)
+                    {
+                        level = "ALERT";
+                        message = $"[ALERTE] Temperature elevee : {measurement.Value}°C — Intervention requise";
+                    }
+                    else if (measurement.Value >= pre)
+                    {
+                        level = "PRE_ALERT";
+                        message = $"[PRÉ-ALERTE] Montee en temperature : {measurement.Value}°C — Surveillance activee";
+                    }
+                    else { level = "NORMAL"; message = string.Empty; }
+
+                    break;
+                case "HUMIDITY":
+                    if (measurement.Value >= critical)
+                    {
+                        level = "CRITICAL";
+                        message = $"[CRITIQUE] Humidite critique : {measurement.Value}% — Risque de condensation et court-circuit";
+                    }
+                    else if (measurement.Value >= alert)
+                    {
+                        level = "ALERT";
+                        message = $"[ALERTE] Humidite tres elevee : {measurement.Value}% — Vérification système requise";
+                    }
+                    else if (measurement.Value >= pre)
+                    {
+                        level = "PRE_ALERT";
+                        message = $"[PRÉ-ALERTE] Taux d'humidite en hausse : {measurement.Value}%";
+                    }
+                    else { level = "NORMAL"; message = string.Empty; }
                     break;
 
                 default:
-                    if (measurement.Value >= critical) { level = "CRITICAL"; message = "Valeur critique"; }
-                    else if (measurement.Value >= alert) { level = "ALERT"; message = "Valeur au-dessus du seuil d alerte"; }
-                    else if (measurement.Value >= pre) { level = "PRE_ALERT"; message = "Valeur au-dessus du seuil pre-alerte"; }
-                    else
-                    {
-                        level = "NORMAL";
-                        message = "Retour à la normale";
-                    }
-                    break;
+                    level = "NORMAL";
+    message = string.Empty;
+    break;
             }
 
 
 
             if (level == "NORMAL")
             {
-                _logger.LogDebug("Sensor {SensorId} value {Value} is NORMAL", measurement.SensorId, measurement.Value);
+                _logger.LogDebug("Sensor {SensorId} NORMAL", measurement.SensorId);
 
-                // ✅ Publier NORMAL vers l’ESP32
-                await _mqttService.PublishAsync("device/alert", new
+                try
                 {
-                    level = "NORMAL",
-                    message = "Retour à la normale"
-                });
+                    var sensor = await _sensorRepository.GetByIdAsync(measurement.SensorId);
 
-                return; // on ne crée pas d’alerte en DB pour NORMAL
+                    if (sensor?.ZoneId != null)
+                    {
+                        // 🔥 TOUJOURS reset
+                        await _zoneRepository.UpdateStatusAsync(sensor.ZoneId, "NORMAL");
+
+                        _logger.LogInformation("Zone {ZoneId} reset to NORMAL", sensor.ZoneId);
+
+                        // 🔥 TOUJOURS notifier
+                        await _notifier.NotifyAsync(new AlertDto
+                        {
+                            SensorId = measurement.SensorId,
+                            ZoneId = sensor.ZoneId,
+                            Level = "NORMAL",
+                            Type = type,
+                            Value = measurement.Value,
+                            Message = "Retour à la normale",
+                            CreatedAt = DateTime.UtcNow
+                        });
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to reset zone status");
+                }
+
+                return;
             }
-
 
             // Récupérer DeviceId + ZoneId
             string deviceIdString = string.Empty;
@@ -231,7 +282,18 @@ namespace IoTFire.Backend.Api.Services.Implementation
                 dto.Id = created.Id;
                 dto.CreatedAt = created.CreatedAt;
                 dto.IsRead = false;
-
+                if (dto.ZoneId.HasValue)
+                {
+                    try
+                    {
+                        await _zoneRepository.UpdateStatusAsync(dto.ZoneId.Value, dto.Level);
+                        _logger.LogInformation("Zone {ZoneId} status updated to {Level}", dto.ZoneId.Value, dto.Level);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Failed to update zone status for zone {ZoneId}", dto.ZoneId.Value);
+                    }
+                }
                 // ✅ MQTT
                 try
                 {

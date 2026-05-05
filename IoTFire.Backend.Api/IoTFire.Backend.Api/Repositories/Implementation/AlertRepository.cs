@@ -26,6 +26,19 @@ namespace IoTFire.Backend.Api.Repositories.Implementation
             return await _context.Alerts.FirstOrDefaultAsync(a => a.Id == id);
         }
 
+        
+        public async Task<IEnumerable<Alert>> GetActiveBySensorIdsAsync(List<int> sensorIds)
+        {
+            if (!sensorIds.Any()) return Enumerable.Empty<Alert>();
+
+            var cutoff = DateTime.UtcNow.AddMinutes(-5);
+            return await _context.Alerts
+                .Where(a => sensorIds.Contains(a.SensorId)
+                         && a.CreatedAt >= cutoff
+                         && a.Level != "NORMAL")
+                .OrderByDescending(a => a.CreatedAt)
+                .ToListAsync();
+        }
         public async Task<Alert> UpdateAsync(Alert alert)
         {
             _context.Alerts.Update(alert);
