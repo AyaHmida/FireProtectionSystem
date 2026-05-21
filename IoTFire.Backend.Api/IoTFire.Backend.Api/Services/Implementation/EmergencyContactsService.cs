@@ -58,15 +58,29 @@ namespace IoTFire.Backend.Api.Services.Implementation
             return await _repo.DeleteAsync(id);
         }
 
-        public async Task<IEnumerable<(string PhoneNumber, DateTime Timestamp)>> SimulateCallAsync(int userId)
+        public async Task<IEnumerable<CallSimulationResultDto>> SimulateCallAsync(int userId)
         {
             var contacts = await _repo.GetAllByUserIdAsync(userId);
-            var result = new List<(string, DateTime)>();
+
+            var result = new List<CallSimulationResultDto>();
+            var random = new Random();
+
             foreach (var c in contacts)
             {
-                // simulate a call
-                result.Add((c.PhoneNumber, DateTime.UtcNow));
+                // simulation délai d’appel
+                await Task.Delay(800);
+
+                // simulation réussite ou échec
+                bool success = random.Next(0, 100) > 20; // 80% success rate
+
+                result.Add(new CallSimulationResultDto
+                {
+                    PhoneNumber = c.PhoneNumber,
+                    Timestamp = DateTime.UtcNow,
+                    Status = success ? "SUCCESS" : "FAILED"
+                });
             }
+
             return result;
         }
     }

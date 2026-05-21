@@ -21,6 +21,7 @@ namespace IoTFire.Backend.Api.Services.Implementation
         
         private readonly ILogger<AlertService> _logger;
         private readonly IEmailService _emailService;
+        private readonly IEmergencyContactsService _emergencyContactsService;
 
         public AlertService(
             ISensorConfigurationService configService,
@@ -29,7 +30,8 @@ namespace IoTFire.Backend.Api.Services.Implementation
             IDeviceRepository deviceRepository,
             IAlertNotifier notifier, IUserRepository userRepository,
             IMqttService mqttService, IZoneRepository zoneRepository,                       // ✅ AJOUT
-            ILogger<AlertService> logger, IEmailService emailService)
+            ILogger<AlertService> logger, IEmailService emailService,
+            IEmergencyContactsService emergencyContactsService)
         {
             _configService = configService;
             _alertRepository = alertRepository;
@@ -41,6 +43,8 @@ namespace IoTFire.Backend.Api.Services.Implementation
             _emailService = emailService;
             _zoneRepository = zoneRepository;
             _userRepository = userRepository;
+            _emergencyContactsService = emergencyContactsService;
+
         }
 
         public async Task CheckAndTriggerAlertAsync(MeasurementDto measurement)
@@ -314,6 +318,31 @@ namespace IoTFire.Backend.Api.Services.Implementation
                 // ✅ SignalR
                 await _notifier.NotifyAsync(dto);
                 await SendAlertEmailAsync(dto);
+
+                if (dto.Level == "CRITICAL" && dto.ZoneId.HasValue)
+                {
+                    try
+                    {
+                        var zone = await _zoneRepository.GetByIdAsync(dto.ZoneId.Value);
+
+                        if (zone != null)
+                        {
+                            await _emergencyContactsService.SimulateCallAsync(zone.UserId);
+
+                            _logger.LogInformation(
+                                "📞 Emergency contacts notified automatically for user {UserId}",
+                                zone.UserId
+                            );
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex,
+                            "❌ Failed to simulate emergency calls for zone {ZoneId}",
+                            dto.ZoneId);
+                    }
+                }
+
                 _logger.LogInformation("✅ Alert {Level} created for sensor {SensorId}", dto.Level, dto.SensorId);
             }
             catch (Exception ex)

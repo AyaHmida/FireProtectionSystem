@@ -7,6 +7,6 @@ namespace IoTFire.Backend.Api.Services.Interfaces
         Task<IEnumerable<EmergencyContactsDto>> GetContactsAsync(int userId);
         Task<EmergencyContactsDto> AddContactAsync(int userId, CreateEmergencyContactsDto dto);
         Task<bool> DeleteContactAsync(int id);
-        Task<IEnumerable<(string PhoneNumber, DateTime Timestamp)>> SimulateCallAsync(int userId);
+        Task<IEnumerable<CallSimulationResultDto>> SimulateCallAsync(int userId);
     }
 }
