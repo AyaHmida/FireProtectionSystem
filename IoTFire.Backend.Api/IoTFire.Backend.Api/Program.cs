@@ -3,6 +3,7 @@ using IoTFire.Backend.Api.Helpers;
 using IoTFire.Backend.Api.Repositories.Implementation;
 using IoTFire.Backend.Api.Repositories.Interfaces;
 using IoTFire.Backend.Api.Services.Implementation;
+using IoTFire.Backend.Api.Services.Implementation.SignalR;
 using IoTFire.Backend.Api.Services.Interfaces;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
@@ -65,15 +66,6 @@ builder.Services.AddScoped<IEmergencyContactsService, EmergencyContactsService>(
 //system audit
 builder.Services.AddScoped<ISystemAuditsRepository, SystemAuditsRepository>();
 builder.Services.AddScoped<ISystemAuditsService, SystemAuditsService>();
-// System state & audits
-// builder.Services.AddScoped<ISystemStateRepository, SystemStateRepository>();
-// builder.Services.AddScoped<ISystemAuditRepository, SystemAuditRepository>();
-// builder.Services.AddScoped<ISystemStateService, SystemStateService>();
-// builder.Services.AddScoped<ISystemAuditService, SystemAuditService>();
-
-// Emergency contacts
-// builder.Services.AddScoped<IEmergencyContactRepository, EmergencyContactRepository>();
-// builder.Services.AddScoped<IEmergencyContactService, EmergencyContactService>();
 
 //system stat
 builder.Services.AddScoped<ISystemStatService, SystemStatService>();
@@ -81,11 +73,16 @@ builder.Services.AddScoped<ISystemStatRepository, SystemStatRepository>();
 // ── Chatbot 
 builder.Services.AddScoped<IChatbotRepository, ChatbotRepository>();
 builder.Services.AddScoped<IChatbotService, ChatbotService>();
+//dashboardAdmin
+builder.Services.AddScoped<IAdminDashboardRepository, AdminDashboardRepository>();
+builder.Services.AddScoped<IAdminDashboardService, AdminDashboardService>();
+
 // SignalR notifier
 builder.Services.AddSignalR();
 builder.Services.AddSingleton<IAlertNotifier, IoTFire.Backend.Api.Services.Implementation.SignalR.SignalRAlertNotifier>();
 // SignalR
 builder.Services.AddSignalR();
+
 
 //configuration de jwt 
 var jwtSettings = builder.Configuration.GetSection("Jwt");
@@ -154,6 +151,7 @@ app.UseAuthorization();
 app.MapControllers();
 app.MapHub<IoTFire.Backend.Api.Services.Implementation.SignalR.AlertNotifierHub>(IoTFire.Backend.Api.Services.Implementation.SignalR.AlertNotifierHub.HubUrl);
 app.MapHub<IoTFire.Backend.Api.Services.Implementation.SignalR.RealtimeHub>(IoTFire.Backend.Api.Services.Implementation.SignalR.RealtimeHub.HubUrl);
+app.MapHub<DashboardHub>("/dashboardHub");
 
 app.Lifetime.ApplicationStopping.Register(() => mqtt.StopAsync().Wait());
 

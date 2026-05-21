@@ -49,12 +49,12 @@ namespace IoTFire.Backend.Api.Controllers
         public async Task<IActionResult> SimulateCall(int userId)
         {
             var result = await _service.SimulateCallAsync(userId);
-            var response = result.Select(r => new
+
+            return Ok(new
             {
-                phoneNumber = r.PhoneNumber,
-                timestamp = r.Timestamp
+                message = "Emergency call simulation executed",
+                calls = result
             });
-            return Ok(response);
         }
     }
 }

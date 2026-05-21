@@ -14,5 +14,6 @@ namespace IoTFire.Backend.Api.Models.DTOs
         public bool IsRead { get; set; } = false;
         public string ZoneName { get; set; } = string.Empty;
         public int SensorCount { get; set; } = 0;
+
     }
 }
